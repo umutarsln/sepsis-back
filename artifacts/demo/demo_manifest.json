@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "n_patients": 10,
+  "patients": [
+    {
+      "patient_id": "p000939",
+      "sepsis": true,
+      "n_hours": 75,
+      "default_end_hour": 75,
+      "default_start_hour": 52,
+      "window_hours": 24
+    },
+    {
+      "patient_id": "p114113",
+      "sepsis": true,
+      "n_hours": 260,
+      "default_end_hour": 260,
+      "default_start_hour": 237,
+      "window_hours": 24
+    },
+    {
+      "patient_id": "p018507",
+      "sepsis": true,
+      "n_hours": 271,
+      "default_end_hour": 271,
+      "default_start_hour": 248,
+      "window_hours": 24
+    },
+    {
+      "patient_id": "p106868",
+      "sepsis": true,
+      "n_hours": 55,
+      "default_end_hour": 55,
+      "default_start_hour": 32,
+      "window_hours": 24
+    },
+    {
+      "patient_id": "p007283",
+      "sepsis": true,
+      "n_hours": 53,
+      "default_end_hour": 53,
+      "default_start_hour": 30,
+      "window_hours": 24
+    },
+    {
+      "patient_id": "p019557",
+      "sepsis": false,
+      "n_hours": 43,
+      "default_end_hour": 44,
+      "default_start_hour": 21,
+      "window_hours": 24
+    },
+    {
+      "patient_id": "p100895",
+      "sepsis": false,
+      "n_hours": 45,
+      "default_end_hour": 45,
+      "default_start_hour": 22,
+      "window_hours": 24
+    },
+    {
+      "patient_id": "p015937",
+      "sepsis": false,
+      "n_hours": 41,
+      "default_end_hour": 46,
+      "default_start_hour": 23,
+      "window_hours": 24
+    },
+    {
+      "patient_id": "p104958",
+      "sepsis": false,
+      "n_hours": 40,
+      "default_end_hour": 40,
+      "default_start_hour": 17,
+      "window_hours": 24
+    },
+    {
+      "patient_id": "p009065",
+      "sepsis": false,
+      "n_hours": 57,
+      "default_end_hour": 57,
+      "default_start_hour": 34,
+      "window_hours": 24
+    }
+  ]
+}

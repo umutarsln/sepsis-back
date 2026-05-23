@@ -1,0 +1,14 @@
+{
+  "lstm": {
+    "threshold": 0.3722659945487976
+  },
+  "gru": {
+    "threshold": 0.61131751537323
+  },
+  "bigru_attn": {
+    "threshold": 0.4813564121723175
+  },
+  "transformer": {
+    "threshold": 0.46278950572013855
+  }
+}

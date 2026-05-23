@@ -1,0 +1,19 @@
+{
+  "versions": [
+    {
+      "n_positive_patients": 268,
+      "n_detected": 250,
+      "detection_rate": 0.9328358208955224,
+      "n_early_alarm": 219,
+      "early_alarm_rate": 0.8171641791044776,
+      "median_lead_time_hours": 16.5,
+      "mean_lead_time_hours": 33.852,
+      "q25_lead_time": 1.0,
+      "q75_lead_time": 52.0,
+      "version": "v5",
+      "threshold_at_spec85": 0.5546994209289551,
+      "n_features": 605,
+      "xgboost_only": true
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "logistic_regression": {
+    "threshold": 0.5821398630314902
+  },
+  "random_forest": {
+    "threshold": 0.45760411550955904
+  },
+  "xgboost": {
+    "threshold": 0.533784806728363
+  },
+  "gradient_boosting": {
+    "threshold": 0.02165460676271418
+  },
+  "gaussian_nb": {
+    "threshold": 0.01126064617227944
+  }
+}

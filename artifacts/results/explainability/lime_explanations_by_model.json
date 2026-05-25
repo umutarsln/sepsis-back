@@ -1,0 +1,458 @@
+{
+  "xgboost": [
+    {
+      "model_id": "xgboost",
+      "patient_type": "tp",
+      "patient_label": "True Positive",
+      "test_index": 112299,
+      "true_label": 1,
+      "predicted_prob": 0.9764518737792969,
+      "top10_features": [
+        {
+          "feature": "0.77 < Chloride <= 0.90",
+          "weight": 0.11626192816508152
+        },
+        {
+          "feature": "Glucose > 0.34",
+          "weight": 0.08868824420483515
+        },
+        {
+          "feature": "HR > 0.60",
+          "weight": 0.0766032643116529
+        },
+        {
+          "feature": "Temp > 0.23",
+          "weight": 0.06826454707817595
+        },
+        {
+          "feature": "Creatinine > 0.20",
+          "weight": 0.06415646232383848
+        },
+        {
+          "feature": "Resp > 0.46",
+          "weight": 0.06350286330896125
+        },
+        {
+          "feature": "Platelets <= -0.10",
+          "weight": 0.06322271396300048
+        },
+        {
+          "feature": "HospAdmTime <= -47.12",
+          "weight": 0.04374059821082773
+        },
+        {
+          "feature": "0.00 < Gender_0 <= 1.00",
+          "weight": -0.03521304537276983
+        },
+        {
+          "feature": "-0.32 < O2Sat <= 0.25",
+          "weight": -0.015365546332981957
+        }
+      ]
+    },
+    {
+      "model_id": "xgboost",
+      "patient_type": "fp",
+      "patient_label": "False Positive",
+      "test_index": 32125,
+      "true_label": 0,
+      "predicted_prob": 0.954172670841217,
+      "top10_features": [
+        {
+          "feature": "ICULOS > 34.00",
+          "weight": 0.3040561624226379
+        },
+        {
+          "feature": "Temp > 0.23",
+          "weight": 0.08229041046258753
+        },
+        {
+          "feature": "MAP <= -0.47",
+          "weight": 0.07461763771236886
+        },
+        {
+          "feature": "-0.40 < Hgb <= 0.06",
+          "weight": 0.06530761683035473
+        },
+        {
+          "feature": "HR <= -0.71",
+          "weight": -0.061845310233393305
+        },
+        {
+          "feature": "0.00 < Gender_1 <= 1.00",
+          "weight": 0.0518652578158999
+        },
+        {
+          "feature": "Age > 74.00",
+          "weight": 0.05121570542342314
+        },
+        {
+          "feature": "BUN > 0.54",
+          "weight": 0.03960794494646048
+        },
+        {
+          "feature": "-0.40 < Hct <= 0.05",
+          "weight": 0.03604473037745491
+        },
+        {
+          "feature": "0.25 < O2Sat <= 0.54",
+          "weight": -0.022390205042103033
+        }
+      ]
+    },
+    {
+      "model_id": "xgboost",
+      "patient_type": "fn",
+      "patient_label": "False Negative",
+      "test_index": 96806,
+      "true_label": 1,
+      "predicted_prob": 0.0821840837597847,
+      "top10_features": [
+        {
+          "feature": "11.00 < ICULOS <= 21.00",
+          "weight": -0.11846386253187595
+        },
+        {
+          "feature": "Hct > 0.57",
+          "weight": -0.09674818508758504
+        },
+        {
+          "feature": "-0.10 < Glucose <= 0.11",
+          "weight": 0.07937271587243783
+        },
+        {
+          "feature": "Gender_1 <= 0.00",
+          "weight": -0.05549542936035833
+        },
+        {
+          "feature": "Resp <= -0.60",
+          "weight": 0.04327748132414867
+        },
+        {
+          "feature": "-0.32 < O2Sat <= 0.25",
+          "weight": -0.04289031227382433
+        },
+        {
+          "feature": "Platelets <= -0.10",
+          "weight": 0.042055884017819144
+        },
+        {
+          "feature": "-0.11 < Temp <= 0.04",
+          "weight": -0.040014943722719756
+        },
+        {
+          "feature": "-0.45 < BUN <= -0.03",
+          "weight": -0.03560589485539384
+        },
+        {
+          "feature": "0.00 < Gender_0 <= 1.00",
+          "weight": 0.03063616423707346
+        }
+      ]
+    }
+  ],
+  "random_forest": [
+    {
+      "model_id": "random_forest",
+      "patient_type": "tp",
+      "patient_label": "True Positive",
+      "test_index": 8495,
+      "true_label": 1,
+      "predicted_prob": 0.9313071460681498,
+      "top10_features": [
+        {
+          "feature": "ICULOS > 34.00",
+          "weight": 0.2320955753361854
+        },
+        {
+          "feature": "HR > 0.60",
+          "weight": 0.0673603677873936
+        },
+        {
+          "feature": "Creatinine > 0.20",
+          "weight": 0.060718754132233356
+        },
+        {
+          "feature": "BUN > 0.54",
+          "weight": 0.048656447474441845
+        },
+        {
+          "feature": "HospAdmTime > -0.04",
+          "weight": 0.043147499225891506
+        },
+        {
+          "feature": "-0.47 < MAP <= 0.02",
+          "weight": 0.03891489194853922
+        },
+        {
+          "feature": "Hgb <= -0.40",
+          "weight": 0.01793561673331417
+        },
+        {
+          "feature": "Temp > 0.23",
+          "weight": 0.017062571958305284
+        },
+        {
+          "feature": "Hct <= -0.40",
+          "weight": 0.015227979250980095
+        },
+        {
+          "feature": "0.20 < Platelets <= 0.46",
+          "weight": -0.01180994281571314
+        }
+      ]
+    },
+    {
+      "model_id": "random_forest",
+      "patient_type": "fp",
+      "patient_label": "False Positive",
+      "test_index": 6601,
+      "true_label": 0,
+      "predicted_prob": 0.9245038345954317,
+      "top10_features": [
+        {
+          "feature": "ICULOS > 34.00",
+          "weight": 0.213684481273958
+        },
+        {
+          "feature": "Creatinine > 0.20",
+          "weight": 0.07708339960996284
+        },
+        {
+          "feature": "BUN > 0.54",
+          "weight": 0.0722647951406961
+        },
+        {
+          "feature": "HospAdmTime > -0.04",
+          "weight": 0.04811378316202712
+        },
+        {
+          "feature": "Resp > 0.46",
+          "weight": 0.04775478793510067
+        },
+        {
+          "feature": "-0.40 < Hgb <= 0.06",
+          "weight": 0.04282211774875713
+        },
+        {
+          "feature": "Temp > 0.23",
+          "weight": 0.04224792828403005
+        },
+        {
+          "feature": "0.00 < Gender_1 <= 1.00",
+          "weight": 0.03398123162709408
+        },
+        {
+          "feature": "Gender_0 <= 0.00",
+          "weight": -0.02799587855471433
+        },
+        {
+          "feature": "64.00 < Age <= 74.00",
+          "weight": -0.02267695486441878
+        }
+      ]
+    },
+    {
+      "model_id": "random_forest",
+      "patient_type": "fn",
+      "patient_label": "False Negative",
+      "test_index": 200469,
+      "true_label": 1,
+      "predicted_prob": 0.13178965318609395,
+      "top10_features": [
+        {
+          "feature": "11.00 < ICULOS <= 21.00",
+          "weight": -0.07793089391309997
+        },
+        {
+          "feature": "-0.10 < Glucose <= 0.11",
+          "weight": 0.07217169727302564
+        },
+        {
+          "feature": "Gender_1 <= 0.00",
+          "weight": -0.04610080521229567
+        },
+        {
+          "feature": "0.04 < Temp <= 0.23",
+          "weight": -0.04329915120412695
+        },
+        {
+          "feature": "-0.08 < HR <= 0.60",
+          "weight": -0.04303390679416818
+        },
+        {
+          "feature": "0.13 < WBC <= 0.56",
+          "weight": -0.04022576603913886
+        },
+        {
+          "feature": "Resp > 0.46",
+          "weight": -0.033550308200702324
+        },
+        {
+          "feature": "Chloride <= -1.11",
+          "weight": -0.031240815113870148
+        },
+        {
+          "feature": "0.00 < Gender_0 <= 1.00",
+          "weight": 0.029452822574083843
+        },
+        {
+          "feature": "0.06 < Hgb <= 0.58",
+          "weight": -0.028417707366308075
+        }
+      ]
+    }
+  ],
+  "logistic_regression": [
+    {
+      "model_id": "logistic_regression",
+      "patient_type": "tp",
+      "patient_label": "True Positive",
+      "test_index": 31665,
+      "true_label": 1,
+      "predicted_prob": 0.9991010191567637,
+      "top10_features": [
+        {
+          "feature": "ICULOS > 34.00",
+          "weight": 0.22851710032346806
+        },
+        {
+          "feature": "Hgb <= -0.40",
+          "weight": 0.16757247758616808
+        },
+        {
+          "feature": "HR > 0.60",
+          "weight": 0.11207568916967788
+        },
+        {
+          "feature": "0.00 < Gender_0 <= 1.00",
+          "weight": -0.0665581144080288
+        },
+        {
+          "feature": "Creatinine > 0.20",
+          "weight": 0.06453919596493185
+        },
+        {
+          "feature": "Resp > 0.46",
+          "weight": 0.06370297160066662
+        },
+        {
+          "feature": "WBC > 0.56",
+          "weight": 0.058733366035443664
+        },
+        {
+          "feature": "Gender_1 <= 0.00",
+          "weight": 0.05594954932242499
+        },
+        {
+          "feature": "Hct <= -0.40",
+          "weight": -0.04948464375455185
+        },
+        {
+          "feature": "HospAdmTime > -0.04",
+          "weight": -0.02278228087162473
+        }
+      ]
+    },
+    {
+      "model_id": "logistic_regression",
+      "patient_type": "fp",
+      "patient_label": "False Positive",
+      "test_index": 122934,
+      "true_label": 0,
+      "predicted_prob": 0.999489924486436,
+      "top10_features": [
+        {
+          "feature": "ICULOS > 34.00",
+          "weight": 0.22355839437063005
+        },
+        {
+          "feature": "Hgb <= -0.40",
+          "weight": 0.15565536826067516
+        },
+        {
+          "feature": "Hct <= -0.40",
+          "weight": -0.1284500937136311
+        },
+        {
+          "feature": "Creatinine > 0.20",
+          "weight": 0.10797873543689594
+        },
+        {
+          "feature": "Gender_0 <= 0.00",
+          "weight": 0.08128658317466203
+        },
+        {
+          "feature": "Temp > 0.23",
+          "weight": 0.05545838959198276
+        },
+        {
+          "feature": "Resp > 0.46",
+          "weight": 0.050836704519304846
+        },
+        {
+          "feature": "WBC > 0.56",
+          "weight": 0.04704135105788537
+        },
+        {
+          "feature": "HR > 0.60",
+          "weight": 0.037350829815967206
+        },
+        {
+          "feature": "64.00 < Age <= 74.00",
+          "weight": -0.032357576426212294
+        }
+      ]
+    },
+    {
+      "model_id": "logistic_regression",
+      "patient_type": "fn",
+      "patient_label": "False Negative",
+      "test_index": 51908,
+      "true_label": 1,
+      "predicted_prob": 0.06304392883165293,
+      "top10_features": [
+        {
+          "feature": "Platelets > 0.46",
+          "weight": -0.11484766110680371
+        },
+        {
+          "feature": "Hgb > 0.58",
+          "weight": -0.09739677798892939
+        },
+        {
+          "feature": "-6.05 < HospAdmTime <= -0.04",
+          "weight": -0.07121563137915041
+        },
+        {
+          "feature": "Gender_0 <= 0.00",
+          "weight": 0.06965810405939503
+        },
+        {
+          "feature": "ICULOS <= 11.00",
+          "weight": -0.06940074006844822
+        },
+        {
+          "feature": "Resp <= -0.60",
+          "weight": -0.06821966705743293
+        },
+        {
+          "feature": "HR <= -0.71",
+          "weight": -0.06804371403095177
+        },
+        {
+          "feature": "Chloride <= -1.11",
+          "weight": 0.055995164745515746
+        },
+        {
+          "feature": "Age > 74.00",
+          "weight": -0.05468913456551541
+        },
+        {
+          "feature": "Glucose > 0.34",
+          "weight": -0.05354985284742198
+        }
+      ]
+    }
+  ]
+}

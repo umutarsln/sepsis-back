@@ -289,7 +289,12 @@ class WindowModelResult(BaseModel):
     alert: bool
     threshold: float
     attention_weights: Optional[list[float]] = Field(
-        None, description="24 timestep attention (yalnizca BiGRU+Attn)"
+        None,
+        description="24 timestep onem agirligi (attention veya gradient saliency)",
+    )
+    importance_method: Optional[str] = Field(
+        None,
+        description="'attention' (BiGRU+Attn) veya 'gradient' (LSTM/GRU/Transformer)",
     )
 
 

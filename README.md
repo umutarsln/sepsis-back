@@ -21,6 +21,8 @@ backend/
 
 ## Calistirma
 
+Anaconda **base** icinde `pip install -r requirements.txt` calistirirsan, ortaminda streamlit/mlflow gibi paketler varsa numpy/pandas uyumsuzluk **uyarilari** gorulebilir; kurulum gene de biter ancak diger araçları bozabilir. Projeyse **backend/.venv veya repo kokunde .venv** kullan.
+
 ```bash
 cd sepsis-son/backend
 python3 -m venv .venv

@@ -158,3 +158,19 @@ class TestWindowPredict:
         assert resp.status_code == 200
         shape = resp.json()["window_shape"]
         assert shape == [24, 18], f"Beklenen [24,18], gelen {shape}"
+
+    def test_window_importance_methods(self, client: TestClient) -> None:
+        """DL modelleri attention veya gradient aciklama agirligi dondurur."""
+        series = [SAMPLE_SNAPSHOT for _ in range(24)]
+        resp = client.post(
+            "/predict/window",
+            json={"snapshot": SAMPLE_SNAPSHOT, "repeat_hours": 24, "series": series},
+        )
+        assert resp.status_code == 200
+        by_id = {m["model_id"]: m for m in resp.json()["models"]}
+        assert by_id["bigru_attn"]["importance_method"] == "attention"
+        assert len(by_id["bigru_attn"]["attention_weights"]) == 24
+        assert by_id["gru"]["importance_method"] == "gradient"
+        assert len(by_id["gru"]["attention_weights"]) == 24
+        assert by_id["lstm"]["importance_method"] == "gradient"
+        assert by_id["transformer"]["importance_method"] == "gradient"

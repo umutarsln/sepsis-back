@@ -70,6 +70,21 @@ class TestArtifactEndpoints:
         assert isinstance(body, list)
         assert len(body) >= 1
         assert "patient_type" in body[0]
+        assert "top10_features" in body[0]
+
+    def test_lime_by_model(self, client: TestClient) -> None:
+        """GET /artifacts/lime/{model_id} model bazli LIME doner."""
+        for model_id in ("xgboost", "random_forest", "logistic_regression"):
+            resp = client.get(f"/artifacts/lime/{model_id}")
+            assert resp.status_code == 200, model_id
+            body = resp.json()
+            assert len(body) == 3
+            assert {row["patient_type"] for row in body} == {"tp", "fp", "fn"}
+
+    def test_lime_invalid_model(self, client: TestClient) -> None:
+        """Gecersiz LIME model_id icin 404 doner."""
+        resp = client.get("/artifacts/lime/unknown_model")
+        assert resp.status_code == 404
 
     def test_version_comparison(self, client: TestClient) -> None:
         """GET /artifacts/version-comparison 200 ve auroc sütunu içerir."""

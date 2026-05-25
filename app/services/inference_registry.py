@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import app.bootstrap_env  # noqa: F401 — numpy/torch oncesi OMP ayarlari
+
 import json
 import logging
 import math
 import pickle
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -430,7 +433,13 @@ class InferenceRegistry:
                 log.error("pkl bulunamadi: %s", pkl_path)
                 return None
             with open(pkl_path, "rb") as f:
-                cache[model_id] = pickle.load(f)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        message="Trying to unpickle estimator",
+                        category=UserWarning,
+                    )
+                    cache[model_id] = pickle.load(f)
             log.info("Model yuklendi: h=%d %s", horizon, model_id)
         return cache[model_id]
 
@@ -541,15 +550,30 @@ class InferenceRegistry:
     # SHAP
     # ------------------------------------------------------------------
 
-    def _get_shap_explainer(self, model_id: str = "xgboost", horizon: int = 6) -> Any:
-        """XGBoost icin SHAP TreeExplainer olusturur (lazy cache).
+    def _positive_class_predictor(self, model: Any):
+        """Ikili sinif modelinden pozitif sinif olasiligini donduren fonksiyon uretir.
+
+        Args:
+            model: predict_proba destekleyen sklearn/xgboost modeli.
+
+        Returns:
+            (N, 18) girdiyi (N,) pozitif sinif skoruna ceviren callable.
+        """
+
+        def predict(x: np.ndarray) -> np.ndarray:
+            return model.predict_proba(x)[:, 1]
+
+        return predict
+
+    def _get_shap_explainer(self, model_id: str = "xgboost", horizon: int = 6) -> dict[str, Any] | None:
+        """XGBoost icin SHAP aciklayici olusturur; TreeExplainer basarisizsa fallback kullanir.
 
         Args:
             model_id: Model kimlik kodu (varsayilan: 'xgboost').
             horizon: Tahmin ufku.
 
         Returns:
-            shap.TreeExplainer nesnesi.
+            {'kind': 'tree'|'generic', 'explainer': ...} sozlugu veya None.
         """
         if horizon not in self._shap_cache:
             self._shap_cache[horizon] = {}
@@ -561,12 +585,50 @@ class InferenceRegistry:
                 m = self._lazy_load(model_id, horizon=horizon)
                 if m is None:
                     raise ValueError(f"Model yuklenemedi: h={horizon} {model_id}")
-                cache[model_id] = _shap.TreeExplainer(m)
-                log.info("SHAP TreeExplainer olusturuldu: h=%d %s", horizon, model_id)
+                try:
+                    explainer = _shap.TreeExplainer(m)
+                    cache[model_id] = {"kind": "tree", "explainer": explainer}
+                    log.info("SHAP TreeExplainer olusturuldu: h=%d %s", horizon, model_id)
+                except Exception as tree_exc:
+                    background = np.zeros((32, len(FEATURE_ORDER)), dtype=np.float32)
+                    predict_fn = self._positive_class_predictor(m)
+                    explainer = _shap.Explainer(predict_fn, background)
+                    cache[model_id] = {"kind": "generic", "explainer": explainer}
+                    log.warning(
+                        "SHAP TreeExplainer basarisiz, Explainer fallback: h=%d %s (%s)",
+                        horizon,
+                        model_id,
+                        tree_exc,
+                    )
             except Exception as exc:
                 log.warning("SHAP explainer olusturulamadi (h=%d %s): %s", horizon, model_id, exc)
                 return None
         return cache.get(model_id)
+
+    def _extract_shap_row(self, explainer_entry: dict[str, Any], X: np.ndarray) -> np.ndarray | None:
+        """SHAP aciklayicisindan tek ornek icin ozellik katki vektorunu cikarir.
+
+        Args:
+            explainer_entry: _get_shap_explainer ciktisi.
+            X: (1, 18) preprocess edilmis numpy array.
+
+        Returns:
+            (18,) SHAP degerleri veya hata durumunda None.
+        """
+        kind = explainer_entry["kind"]
+        explainer = explainer_entry["explainer"]
+        if kind == "tree":
+            sv = explainer.shap_values(X)
+            if isinstance(sv, list):
+                sv = sv[1]
+            return np.asarray(sv[0], dtype=np.float64)
+        out = explainer(X)
+        values = np.asarray(out.values, dtype=np.float64)
+        if values.ndim == 3:
+            return values[0, :, 1]
+        if values.ndim == 2:
+            return values[0]
+        return values.reshape(-1)
 
     def _compute_scores(self, X: Any, horizon: int = 6) -> list[dict]:
         """5 ML modeli ile skor hesaplar (predict_snapshot icin yardimci).
@@ -665,27 +727,65 @@ class InferenceRegistry:
         results = self._compute_scores(X, horizon=horizon)
         shap_top5 = None
         try:
-            explainer = self._get_shap_explainer("xgboost", horizon=horizon)
-            if explainer is not None:
-                sv = explainer.shap_values(X)  # (1, 18)
-                # XGBClassifier bazen list donebilir
-                if isinstance(sv, list):
-                    sv = sv[1]
-                abs_sv = np.abs(sv[0])
-                total = float(abs_sv.sum()) or 1.0
-                top5_idx = np.argsort(abs_sv)[-5:][::-1]
-                shap_top5 = [
-                    {
-                        "feature": FEATURE_ORDER[i],
-                        "shap_value": float(sv[0][i]),
-                        "abs_shap": float(abs_sv[i]),
-                        "pct_contribution": float(abs_sv[i] / total * 100),
-                    }
-                    for i in top5_idx
-                ]
+            explainer_entry = self._get_shap_explainer("xgboost", horizon=horizon)
+            if explainer_entry is not None:
+                shap_row = self._extract_shap_row(explainer_entry, X)
+                if shap_row is not None:
+                    abs_sv = np.abs(shap_row)
+                    total = float(abs_sv.sum()) or 1.0
+                    top5_idx = np.argsort(abs_sv)[-5:][::-1]
+                    shap_top5 = [
+                        {
+                            "feature": FEATURE_ORDER[i],
+                            "shap_value": float(shap_row[i]),
+                            "abs_shap": float(abs_sv[i]),
+                            "pct_contribution": float(abs_sv[i] / total * 100),
+                        }
+                        for i in top5_idx
+                    ]
         except Exception as exc:
             log.warning("SHAP hesaplanamadi: %s", exc)
         return {"models": results, "shap_top5": shap_top5, "horizon": horizon}
+
+    def _compute_gradient_timestep_importance(
+        self, model: nn.Module, x: torch.Tensor
+    ) -> list[float] | None:
+        """LSTM/GRU/Transformer icin timestep bazli gradient saliency uretir.
+
+        Risk skoruna (sigmoid logit) gore girdi timestep'lerinin mutlak gradyan
+        ortalamasini normalize ederek 24 saatlik onem dagilimi dondurur.
+        """
+        try:
+            with torch.enable_grad():
+                model.eval()
+                x_grad = x.clone().detach().requires_grad_(True)
+                logit, _ = model(x_grad)
+                score = torch.sigmoid(logit.squeeze())
+                model.zero_grad(set_to_none=True)
+                score.backward()
+                if x_grad.grad is None:
+                    return None
+                step = x_grad.grad.abs().mean(dim=2).squeeze(0)
+                total = float(step.sum().item())
+                if total <= 0:
+                    return None
+                return (step / total).detach().cpu().tolist()
+        except Exception as exc:
+            log.warning("Gradient saliency hesaplanamadi: %s", exc)
+            return None
+
+    def _resolve_window_importance(
+        self, model: nn.Module, model_id: str, x: torch.Tensor, attn_w: torch.Tensor | None
+    ) -> tuple[list[float] | None, str | None]:
+        """DL modeli icin timestep onem agirligi ve yontem etiketini cozer."""
+        if attn_w is not None:
+            weights = attn_w[0].detach().cpu().tolist()
+            return weights, "attention"
+        if model_id in {"lstm", "gru", "transformer"}:
+            weights = self._compute_gradient_timestep_importance(model, x)
+            if weights is not None:
+                return weights, "gradient"
+        return None, None
 
     @torch.no_grad()
     def predict_window(
@@ -730,6 +830,7 @@ class InferenceRegistry:
                         "alert": False,
                         "threshold": threshold,
                         "attention_weights": None,
+                        "importance_method": None,
                     }
                 )
                 continue
@@ -737,11 +838,14 @@ class InferenceRegistry:
             try:
                 logit, attn_w = model(x)
                 prob = float(torch.sigmoid(logit).item())
-                attn = attn_w[0].cpu().tolist() if attn_w is not None else None
             except Exception as exc:
                 log.error("DL tahmin hatasi (%s): %s", model_id, exc)
                 prob = 0.0
-                attn = None
+                attn_w = None
+
+            importance, importance_method = self._resolve_window_importance(
+                model, model_id, x, attn_w
+            )
 
             results.append(
                 {
@@ -750,7 +854,8 @@ class InferenceRegistry:
                     "risk_score": round(prob, 6),
                     "alert": prob >= threshold,
                     "threshold": round(threshold, 6),
-                    "attention_weights": attn,
+                    "attention_weights": importance,
+                    "importance_method": importance_method,
                 }
             )
 

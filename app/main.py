@@ -90,6 +90,8 @@ _SEPSIS_SON_DIR = Path(__file__).resolve().parents[2]  # sepsis-son/
 
 _EXPLAINABILITY_DIR = _BACKEND_DIR / "artifacts" / "results" / "explainability"
 _LEAD_TIME_JSON = _BACKEND_DIR / "artifacts" / "results" / "lead_time" / "lead_time_summary.json"
+_LIME_JSON = _EXPLAINABILITY_DIR / "lime_explanations.json"
+_LIME_BY_MODEL_JSON = _EXPLAINABILITY_DIR / "lime_explanations_by_model.json"
 
 _ADM2_DIR = _SEPSIS_SON_DIR / "adim_2_2026-05-07" / "ciktilar"
 _ADM3_DIR = _SEPSIS_SON_DIR / "adim_3_2026-05-07" / "ciktilar"
@@ -141,6 +143,7 @@ _FINAL_BENCHMARK_KEYS: set[tuple[str, str, str | None]] = {
 
 # Path traversal korumasi — izin verilen model kimlikleri
 _SHAP_ALLOWED = {"xgboost", "random_forest", "logistic_regression"}
+_LIME_ALLOWED = _SHAP_ALLOWED
 _ATTN_ALLOWED = {"bigru_attn", "transformer"}
 
 # Simulatör slider sinirlari icin klinik referans araliklari (PhysioNet 2019 tabanli).
@@ -474,6 +477,29 @@ def _csv_to_records(path: Path) -> list[dict[str, Any]]:
         return [dict(row) for row in reader]
 
 
+def _load_lime_explanations(model_id: str) -> list:
+    """Model bazli LIME TP/FP/FN aciklamalarini yukler."""
+    if model_id not in _LIME_ALLOWED:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Gecersiz model_id: '{model_id}'. Gecerli: {sorted(_LIME_ALLOWED)}",
+        )
+
+    if _LIME_BY_MODEL_JSON.exists():
+        data = _load_json(_LIME_BY_MODEL_JSON)
+        if isinstance(data, dict) and model_id in data:
+            return data[model_id]
+
+    if model_id == "xgboost":
+        lime_json = _LIME_JSON if _LIME_JSON.exists() else _ADM7_DIR / "lime_explanations.json"
+        return _load_json(lime_json)
+
+    raise HTTPException(
+        status_code=404,
+        detail=f"LIME aciklamasi bulunamadi: {model_id}",
+    )
+
+
 def _lead_time_from_mapping(data: dict[str, Any]) -> LeadTimeSummary:
     """Ham sozlukten frontend uyumlu LeadTimeSummary nesnesi uretir."""
     return LeadTimeSummary(
@@ -786,16 +812,29 @@ def get_feature_ranking() -> list:
 @app.get(
     "/artifacts/lime",
     tags=["Aciklama"],
-    summary="LIME örnek açıklamaları (TP / FP / FN)",
+    summary="LIME örnek açıklamaları (XGBoost — geri uyumlu)",
     response_description="Üç hasta tipi için LIME top-10 feature katkısı.",
 )
-def get_lime() -> list:
-    """Faz 7 LIME açıklamalarını döner.
+def get_lime_legacy() -> list:
+    """XGBoost LIME aciklamalarini doner (legacy endpoint)."""
+    return _load_lime_explanations("xgboost")
 
-    Her kayıt şu alanları içerir: **patient_type** (tp/fp/fn),
-    **predicted_prob**, **top10_features**.
+
+@app.get(
+    "/artifacts/lime/{model_id}",
+    tags=["Aciklama"],
+    summary="Model bazlı LIME örnek açıklamaları (TP / FP / FN)",
+    response_description="Secilen model icin uc ornek hastada LIME top-10 feature katkisi.",
+    responses={
+        404: {"description": "model_id gecersiz veya LIME artifact bulunamadi."},
+    },
+)
+def get_lime_by_model(model_id: str) -> list:
+    """Frontend model secicisi ile uyumlu LIME aciklamalarini doner.
+
+    **model_id**: `xgboost`, `random_forest`, `logistic_regression`
     """
-    return _load_json(_ADM7_DIR / "lime_explanations.json")
+    return _load_lime_explanations(model_id)
 
 
 @app.get(

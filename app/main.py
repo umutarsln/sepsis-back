@@ -33,6 +33,7 @@ from app.schemas import (
     WindowPredictionResponse,
 )
 from app.services.inference_registry import InferenceRegistry
+from app.services.patient_presets import list_patient_presets
 from app.services.patient_store import patient_store
 
 # ---------------------------------------------------------------------------
@@ -546,42 +547,6 @@ def _lead_time_from_faz4_csv(model_id: str = "xgboost") -> LeadTimeSummary:
     )
 
 
-def _gender_from_snapshot(snapshot: dict[str, float]) -> str:
-    """Gender_0/Gender_1 one-hot alanlarindan M/F cinsiyet kodu uretir."""
-    if snapshot.get("Gender_0", 0.0) >= 0.5:
-        return "F"
-    if snapshot.get("Gender_1", 0.0) >= 0.5:
-        return "M"
-    return "M"
-
-
-def _snapshot_to_features(snapshot: dict[str, float]) -> dict[str, float]:
-    """Snapshot sozlugunden Gender kolonlarini cikarip frontend features uretir."""
-    return {
-        key: float(value)
-        for key, value in snapshot.items()
-        if key not in {"Gender_0", "Gender_1"} and value is not None
-    }
-
-
-def _preset_from_snapshot_row(row: dict[str, Any]) -> PatientPreset:
-    """Ic snapshot tanimini frontend PatientPreset formatina cevirir."""
-    snapshot = {k: float(v) for k, v in row["snapshot"].items()}
-    risk_band_map = {
-        "dusuk_risk": "low",
-        "yuksek_risk": "high",
-        "sinir_durum": "medium",
-    }
-    return PatientPreset(
-        preset_id=row["preset_id"],
-        label=row["label"],
-        risk_band=risk_band_map.get(row["preset_id"], "medium"),
-        description=row["description"],
-        gender=_gender_from_snapshot(snapshot),
-        features=_snapshot_to_features(snapshot),
-    )
-
-
 def _with_clinical_ranges(stats: dict[str, Any]) -> dict[str, Any]:
     """feature_stats yanitina eksikse klinik slider araliklarini ekler."""
     if not stats.get("clinical_ranges"):
@@ -679,24 +644,35 @@ def predict_snapshot_horizon(
     response_model=SnapshotExplainResponse,
     tags=["Tahmin", "Aciklama"],
     summary="Anlık ölçümden risk skoru + SHAP açıklaması",
-    response_description="ML model skorları ve XGBoost SHAP top-5 feature katkısı.",
+    response_description="ML model skorları ve model bazlı SHAP top-10 feature katkıları.",
     responses={
         422: {"description": "Giriş doğrulama hatası."},
         500: {"description": "Model inference veya SHAP hesaplama hatası."},
     },
 )
 def predict_snapshot_explain(req: SnapshotPredictionRequest) -> SnapshotExplainResponse:
-    """Snapshot skorlaması yapar ve XGBoost için SHAP değerlerini hesaplar.
+    """Snapshot skorlaması yapar ve tüm ML modelleri için SHAP değerlerini hesaplar.
 
-    **shap_top5** listesi mutlak SHAP değerine göre azalan sırada sıralanmıştır.
-    Her elemanın **pct_contribution** alanı, toplam SHAP aktivasyonuna oranı gösterir.
+    **shap_by_model** her model için mutlak SHAP değerine göre azalan top-10 listesi döner.
+    **shap_top10** alanı geriye uyumluluk için XGBoost sonucunu içerir.
     """
     raw = inference_registry.predict_snapshot_explain(req.snapshot.model_dump())
     scores = [ModelScore(**m) for m in raw["models"]]
-    top5 = None
-    if raw.get("shap_top5") is not None:
-        top5 = [ShapContribution(**s) for s in raw["shap_top5"]]
-    return SnapshotExplainResponse(models=scores, shap_top5=top5, horizon=raw.get("horizon", 6))
+    top10 = None
+    if raw.get("shap_top10") is not None:
+        top10 = [ShapContribution(**s) for s in raw["shap_top10"]]
+    shap_by_model = None
+    if raw.get("shap_by_model"):
+        shap_by_model = {
+            model_id: [ShapContribution(**s) for s in rows]
+            for model_id, rows in raw["shap_by_model"].items()
+        }
+    return SnapshotExplainResponse(
+        models=scores,
+        shap_top10=top10,
+        shap_by_model=shap_by_model,
+        horizon=raw.get("horizon", 6),
+    )
 
 
 @app.post(
@@ -1060,90 +1036,8 @@ def get_patient_window(
     response_model=list[PatientPreset],
     tags=["Metaveri"],
     summary="Ön tanımlı klinik hasta profilleri",
-    response_description="Üç farklı klinik senaryoya ait hasta ölçüm seti.",
+    response_description="Farklı klinik senaryolara ait hasta ölçüm setleri.",
 )
 def get_patient_presets() -> list[PatientPreset]:
-    """Frontend simülatörü için hazır hasta profillerini döner.
-
-    - **düşük_risk**: Kararlı vital bulgular, sepsis olasılığı düşük
-    - **yüksek_risk**: Yüksek HR, düşük MAP, yüksek Creatinine
-    - **sınır_durum**: Eşik değerleri yakın, modeller ayrışır
-    """
-    preset_rows = [
-        {
-            "preset_id": "dusuk_risk",
-            "label": "Düşük Risk",
-            "description": "Kararlı vital bulgular; sepsis ihtimali düşük.",
-            "snapshot": {
-                "HR": 75.0,
-                "O2Sat": 98.0,
-                "Temp": 37.1,
-                "MAP": 85.0,
-                "Resp": 14.0,
-                "BUN": 12.0,
-                "Chloride": 101.0,
-                "Creatinine": 0.8,
-                "Glucose": 105.0,
-                "Hct": 42.0,
-                "Hgb": 13.8,
-                "WBC": 8.2,
-                "Platelets": 250.0,
-                "Age": 52.0,
-                "HospAdmTime": -4.0,
-                "ICULOS": 6.0,
-                "Gender_0": 1.0,
-                "Gender_1": 0.0,
-            },
-        },
-        {
-            "preset_id": "yuksek_risk",
-            "label": "Yüksek Risk",
-            "description": "Yüksek HR, düşük MAP, artmış Creatinine — sepsis uyarısı beklenir.",
-            "snapshot": {
-                "HR": 118.0,
-                "O2Sat": 91.0,
-                "Temp": 39.2,
-                "MAP": 58.0,
-                "Resp": 28.0,
-                "BUN": 32.0,
-                "Chloride": 108.0,
-                "Creatinine": 2.4,
-                "Glucose": 182.0,
-                "Hct": 33.0,
-                "Hgb": 10.5,
-                "WBC": 18.6,
-                "Platelets": 128.0,
-                "Age": 71.0,
-                "HospAdmTime": -12.0,
-                "ICULOS": 24.0,
-                "Gender_0": 0.0,
-                "Gender_1": 1.0,
-            },
-        },
-        {
-            "preset_id": "sinir_durum",
-            "label": "Sınır Durum",
-            "description": "Eşik değerlerine yakın ölçümler; modeller arasında görüş ayrılığı oluşabilir.",
-            "snapshot": {
-                "HR": 95.0,
-                "O2Sat": 95.0,
-                "Temp": 38.4,
-                "MAP": 68.0,
-                "Resp": 21.0,
-                "BUN": 22.0,
-                "Chloride": 104.0,
-                "Creatinine": 1.4,
-                "Glucose": 138.0,
-                "Hct": 37.0,
-                "Hgb": 11.9,
-                "WBC": 13.1,
-                "Platelets": 175.0,
-                "Age": 63.0,
-                "HospAdmTime": -7.0,
-                "ICULOS": 15.0,
-                "Gender_0": 0.0,
-                "Gender_1": 1.0,
-            },
-        },
-    ]
-    return [_preset_from_snapshot_row(row) for row in preset_rows]
+    """Frontend simulatörü icin hazir hasta profillerini dondurur."""
+    return list_patient_presets()

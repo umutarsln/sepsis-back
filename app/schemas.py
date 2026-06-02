@@ -184,7 +184,7 @@ class SnapshotPredictionResponse(BaseModel):
 
 
 class SnapshotExplainResponse(BaseModel):
-    """Snapshot tahmin + SHAP top-5 aciklama yaniti."""
+    """Snapshot tahmin + SHAP top-10 aciklama yaniti."""
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -198,7 +198,7 @@ class SnapshotExplainResponse(BaseModel):
                         "threshold": 0.531,
                     }
                 ],
-                "shap_top5": [
+                "shap_top10": [
                     {
                         "feature": "ICULOS",
                         "shap_value": 0.42,
@@ -211,8 +211,12 @@ class SnapshotExplainResponse(BaseModel):
     )
 
     models: list[ModelScore]
-    shap_top5: Optional[list[ShapContribution]] = Field(
-        None, description="XGBoost SHAP top-5 feature katkisi"
+    shap_top10: Optional[list[ShapContribution]] = Field(
+        None, description="XGBoost SHAP top-10 (geriye uyumluluk; shap_by_model.xgboost ile ayni)"
+    )
+    shap_by_model: Optional[dict[str, list[ShapContribution]]] = Field(
+        None,
+        description="Model bazli SHAP top-10 katkilari (5 ML modeli, mutlak SHAP azalan)",
     )
     horizon: int = Field(6, description="Tahmin ufku (saat)")
 

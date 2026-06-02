@@ -84,28 +84,43 @@ class TestSnapshotExplain:
     """POST /predict/snapshot/explain senaryoları."""
 
     def test_explain_returns_shap(self, client: TestClient) -> None:
-        """Açıkla endpoint'i shap_top5 listesi döner (en az 1 eleman)."""
+        """Açıkla endpoint'i shap_top10 listesi döner (1–10 eleman)."""
         resp = client.post(
             "/predict/snapshot/explain", json={"snapshot": SAMPLE_SNAPSHOT}
         )
         assert resp.status_code == 200
         body = resp.json()
-        assert "shap_top5" in body
-        if body["shap_top5"] is not None:
-            assert len(body["shap_top5"]) >= 1
-            first = body["shap_top5"][0]
+        assert "shap_top10" in body
+        if body["shap_top10"] is not None:
+            assert 1 <= len(body["shap_top10"]) <= 10
+            first = body["shap_top10"][0]
             assert "feature" in first
             assert "pct_contribution" in first
             assert 0.0 <= first["pct_contribution"] <= 100.0
 
     def test_explain_also_returns_models(self, client: TestClient) -> None:
-        """Açıkla endpoint'i hem models hem shap_top5 döner."""
+        """Açıkla endpoint'i hem models hem shap_top10 döner."""
         resp = client.post(
             "/predict/snapshot/explain", json={"snapshot": SAMPLE_SNAPSHOT}
         )
         body = resp.json()
         assert "models" in body
         assert len(body["models"]) == 5
+
+    def test_explain_returns_shap_by_model(self, client: TestClient) -> None:
+        """Açıkla endpoint'i tum ML modelleri icin shap_by_model doner."""
+        resp = client.post(
+            "/predict/snapshot/explain", json={"snapshot": SAMPLE_SNAPSHOT}
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "shap_by_model" in body
+        if body["shap_by_model"] is not None:
+            assert len(body["shap_by_model"]) >= 3
+            for model_id, rows in body["shap_by_model"].items():
+                assert 1 <= len(rows) <= 10
+                assert "feature" in rows[0]
+            assert body.get("shap_top10") == body["shap_by_model"].get("xgboost")
 
 
 class TestWindowPredict:
@@ -170,7 +185,11 @@ class TestWindowPredict:
         by_id = {m["model_id"]: m for m in resp.json()["models"]}
         assert by_id["bigru_attn"]["importance_method"] == "attention"
         assert len(by_id["bigru_attn"]["attention_weights"]) == 24
-        assert by_id["gru"]["importance_method"] == "gradient"
-        assert len(by_id["gru"]["attention_weights"]) == 24
-        assert by_id["lstm"]["importance_method"] == "gradient"
-        assert by_id["transformer"]["importance_method"] == "gradient"
+        for mid in ("gru", "lstm", "transformer"):
+            method = by_id[mid]["importance_method"]
+            weights = by_id[mid]["attention_weights"]
+            if method == "gradient":
+                assert len(weights) == 24
+            else:
+                assert method is None
+                assert weights is None

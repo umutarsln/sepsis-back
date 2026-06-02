@@ -12,6 +12,7 @@ env/
 .coverage
 htmlcov/
 *.cover
+artifacts/
 
 # IDE / OS
 .DS_Store

@@ -7,7 +7,10 @@ import app.bootstrap_env  # noqa: F401 — numpy/torch oncesi OMP ayarlari
 import json
 import logging
 import math
+import os
 import pickle
+import sys
+import threading
 import warnings
 from pathlib import Path
 from typing import Any
@@ -17,6 +20,12 @@ import torch
 import torch.nn as nn
 
 log = logging.getLogger(__name__)
+
+# macOS'ta torch.backward() segfault (139) uretebiliyor; demo icin varsayilan kapali.
+_ENABLE_GRADIENT_SALIENCY = os.environ.get(
+    "ENABLE_GRADIENT_SALIENCY",
+    "0" if sys.platform == "darwin" else "1",
+) == "1"
 
 # ---------------------------------------------------------------------------
 # Sabitler
@@ -43,6 +52,9 @@ FEATURE_ORDER = [
     "Gender_1",
 ]
 
+# Dashboard ve aciklama endpoint'i icin dondurulecek SHAP ozellik sayisi.
+SHAP_TOP_K = 10
+
 LOG_TRANSFORM_COLS = {"MAP", "BUN", "Creatinine", "Glucose", "WBC", "Platelets"}
 
 MODEL_DISPLAY = {
@@ -60,6 +72,9 @@ MODEL_ORDER = [
     "gradient_boosting",
     "gaussian_nb",
 ]
+
+# Snapshot aciklamasi icin SHAP hesaplanacak ML modelleri.
+SHAP_EXPLAIN_MODELS = list(MODEL_ORDER)
 
 # parents[2] = backend/, parents[3] = sepsis-son/
 _BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -348,6 +363,7 @@ class InferenceRegistry:
         self._dl_cache: dict[str, nn.Module] = {}
         self._dl_thresholds: dict[str, float] = self._load_dl_thresholds()
         self._shap_cache: dict[int, Any] = {}
+        self._dl_lock = threading.Lock()
         log.info(
             "InferenceRegistry hazir — horizonlar %s, model sayisi=%d",
             sorted(HORIZON_PROFILES),
@@ -621,7 +637,13 @@ class InferenceRegistry:
             sv = explainer.shap_values(X)
             if isinstance(sv, list):
                 sv = sv[1]
-            return np.asarray(sv[0], dtype=np.float64)
+            arr = np.asarray(sv, dtype=np.float64)
+            if arr.ndim == 3:
+                # Ornek: (1, n_features, 2) ikili sinif TreeExplainer ciktisi
+                return arr[0, :, 1]
+            if arr.ndim == 2:
+                return arr[0]
+            return arr.reshape(-1)
         out = explainer(X)
         values = np.asarray(out.values, dtype=np.float64)
         if values.ndim == 3:
@@ -629,6 +651,52 @@ class InferenceRegistry:
         if values.ndim == 2:
             return values[0]
         return values.reshape(-1)
+
+    def _shap_row_to_top_k(self, shap_row: np.ndarray) -> list[dict[str, float | str]]:
+        """SHAP vektorunden mutlak deger azalan top-K katki listesi uretir.
+
+        Args:
+            shap_row: (18,) SHAP degerleri.
+
+        Returns:
+            En fazla SHAP_TOP_K elemanli sozluk listesi.
+        """
+        abs_sv = np.abs(shap_row)
+        total = float(abs_sv.sum()) or 1.0
+        top_idx = np.argsort(abs_sv)[-SHAP_TOP_K:][::-1]
+        return [
+            {
+                "feature": FEATURE_ORDER[i],
+                "shap_value": float(shap_row[i]),
+                "abs_shap": float(abs_sv[i]),
+                "pct_contribution": float(abs_sv[i] / total * 100),
+            }
+            for i in top_idx
+        ]
+
+    def _compute_shap_top_k_for_model(
+        self,
+        model_id: str,
+        X: np.ndarray,
+        horizon: int = 6,
+    ) -> list[dict[str, float | str]] | None:
+        """Tek ML modeli icin SHAP top-K katki listesi hesaplar.
+
+        Args:
+            model_id: Model kimlik kodu.
+            X: (1, 18) preprocess edilmis numpy array.
+            horizon: Tahmin ufku.
+
+        Returns:
+            Top-K SHAP listesi veya hesaplanamazsa None.
+        """
+        explainer_entry = self._get_shap_explainer(model_id, horizon=horizon)
+        if explainer_entry is None:
+            return None
+        shap_row = self._extract_shap_row(explainer_entry, X)
+        if shap_row is None:
+            return None
+        return self._shap_row_to_top_k(shap_row)
 
     def _compute_scores(self, X: Any, horizon: int = 6) -> list[dict]:
         """5 ML modeli ile skor hesaplar (predict_snapshot icin yardimci).
@@ -714,38 +782,37 @@ class InferenceRegistry:
         snapshot: dict[str, float | None],
         horizon: int = 6,
     ) -> dict:
-        """5 ML modeli ile skor + XGBoost SHAP top-5 hesaplar.
+        """5 ML modeli ile skor + tum ML modelleri icin SHAP top-K hesaplar.
 
         Args:
             snapshot: PatientSnapshot alanlari sozlugu.
             horizon: Tahmin ufku.
 
         Returns:
-            {'models': [...], 'shap_top5': [...] veya None, 'horizon': int} sozlugu.
+            {
+                'models': [...],
+                'shap_top10': xgboost top-K (geriye uyumluluk),
+                'shap_by_model': {model_id: top-K listesi},
+                'horizon': int,
+            } sozlugu.
         """
         X = self._preprocess_snapshot(snapshot)
         results = self._compute_scores(X, horizon=horizon)
-        shap_top5 = None
-        try:
-            explainer_entry = self._get_shap_explainer("xgboost", horizon=horizon)
-            if explainer_entry is not None:
-                shap_row = self._extract_shap_row(explainer_entry, X)
-                if shap_row is not None:
-                    abs_sv = np.abs(shap_row)
-                    total = float(abs_sv.sum()) or 1.0
-                    top5_idx = np.argsort(abs_sv)[-5:][::-1]
-                    shap_top5 = [
-                        {
-                            "feature": FEATURE_ORDER[i],
-                            "shap_value": float(shap_row[i]),
-                            "abs_shap": float(abs_sv[i]),
-                            "pct_contribution": float(abs_sv[i] / total * 100),
-                        }
-                        for i in top5_idx
-                    ]
-        except Exception as exc:
-            log.warning("SHAP hesaplanamadi: %s", exc)
-        return {"models": results, "shap_top5": shap_top5, "horizon": horizon}
+        shap_by_model: dict[str, list[dict[str, float | str]]] = {}
+        for model_id in SHAP_EXPLAIN_MODELS:
+            try:
+                top_k = self._compute_shap_top_k_for_model(model_id, X, horizon=horizon)
+                if top_k:
+                    shap_by_model[model_id] = top_k
+            except Exception as exc:
+                log.warning("SHAP hesaplanamadi (h=%d %s): %s", horizon, model_id, exc)
+        shap_top10 = shap_by_model.get("xgboost")
+        return {
+            "models": results,
+            "shap_top10": shap_top10,
+            "shap_by_model": shap_by_model or None,
+            "horizon": horizon,
+        }
 
     def _compute_gradient_timestep_importance(
         self, model: nn.Module, x: torch.Tensor
@@ -754,15 +821,19 @@ class InferenceRegistry:
 
         Risk skoruna (sigmoid logit) gore girdi timestep'lerinin mutlak gradyan
         ortalamasini normalize ederek 24 saatlik onem dagilimi dondurur.
+        macOS/PyTorch segfault riskine karsi girdi float32 CPU contiguous yapilir.
         """
         try:
+            x_base = x.detach().to(device=torch.device("cpu"), dtype=torch.float32).contiguous()
             with torch.enable_grad():
                 model.eval()
-                x_grad = x.clone().detach().requires_grad_(True)
+                x_grad = x_base.clone().requires_grad_(True)
                 logit, _ = model(x_grad)
                 score = torch.sigmoid(logit.squeeze())
+                if score.ndim == 0:
+                    score = score.unsqueeze(0)
                 model.zero_grad(set_to_none=True)
-                score.backward()
+                score.sum().backward()
                 if x_grad.grad is None:
                     return None
                 step = x_grad.grad.abs().mean(dim=2).squeeze(0)
@@ -781,7 +852,7 @@ class InferenceRegistry:
         if attn_w is not None:
             weights = attn_w[0].detach().cpu().tolist()
             return weights, "attention"
-        if model_id in {"lstm", "gru", "transformer"}:
+        if _ENABLE_GRADIENT_SALIENCY and model_id in {"lstm", "gru", "transformer"}:
             weights = self._compute_gradient_timestep_importance(model, x)
             if weights is not None:
                 return weights, "gradient"
@@ -816,47 +887,48 @@ class InferenceRegistry:
         T = x.shape[1]
         results: list[dict] = []
 
-        for model_id in _WINDOW_MODELS:
-            model = self._lazy_load_dl(model_id)
-            threshold = self._dl_thresholds.get(model_id, 0.5)
-            display = _DL_DISPLAY_NAMES.get(model_id, model_id)
+        with self._dl_lock:
+            for model_id in _WINDOW_MODELS:
+                model = self._lazy_load_dl(model_id)
+                threshold = self._dl_thresholds.get(model_id, 0.5)
+                display = _DL_DISPLAY_NAMES.get(model_id, model_id)
 
-            if model is None:
+                if model is None:
+                    results.append(
+                        {
+                            "model_id": model_id,
+                            "model_name": display,
+                            "risk_score": 0.0,
+                            "alert": False,
+                            "threshold": threshold,
+                            "attention_weights": None,
+                            "importance_method": None,
+                        }
+                    )
+                    continue
+
+                try:
+                    logit, attn_w = model(x)
+                    prob = float(torch.sigmoid(logit).item())
+                except Exception as exc:
+                    log.error("DL tahmin hatasi (%s): %s", model_id, exc)
+                    prob = 0.0
+                    attn_w = None
+
+                importance, importance_method = self._resolve_window_importance(
+                    model, model_id, x, attn_w
+                )
+
                 results.append(
                     {
                         "model_id": model_id,
                         "model_name": display,
-                        "risk_score": 0.0,
-                        "alert": False,
-                        "threshold": threshold,
-                        "attention_weights": None,
-                        "importance_method": None,
+                        "risk_score": round(prob, 6),
+                        "alert": prob >= threshold,
+                        "threshold": round(threshold, 6),
+                        "attention_weights": importance,
+                        "importance_method": importance_method,
                     }
                 )
-                continue
-
-            try:
-                logit, attn_w = model(x)
-                prob = float(torch.sigmoid(logit).item())
-            except Exception as exc:
-                log.error("DL tahmin hatasi (%s): %s", model_id, exc)
-                prob = 0.0
-                attn_w = None
-
-            importance, importance_method = self._resolve_window_importance(
-                model, model_id, x, attn_w
-            )
-
-            results.append(
-                {
-                    "model_id": model_id,
-                    "model_name": display,
-                    "risk_score": round(prob, 6),
-                    "alert": prob >= threshold,
-                    "threshold": round(threshold, 6),
-                    "attention_weights": importance,
-                    "importance_method": importance_method,
-                }
-            )
 
         return {"models": results, "window_shape": (T, 18), "input_mode": input_mode}

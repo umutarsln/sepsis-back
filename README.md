@@ -38,3 +38,4 @@ KMP_DUPLICATE_LIB_OK=TRUE OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREA
 - `scikit-learn>=1.8` ile `GradientBoostingClassifier` pkl dosyalari yuklenemez
   (`CyHalfBinomialLoss` hatasi). Bu nedenle `requirements.txt` icinde **1.5.2** sabitlenmistir.
 - SHAP aciklamasi icin `shap` paketi `requirements.txt` icinde tanimlidir.
+- `/predict/snapshot/explain` yanitinda `shap_by_model` (5 ML modeli, model basina en fazla 10 ozellik) ve geriye uyumluluk icin `shap_top10` (XGBoost) doner.

@@ -131,16 +131,22 @@ class TestMetadataEndpoints:
         assert len(body["feature_order"]) == 18
 
     def test_patient_presets(self, client: TestClient) -> None:
-        """GET /patients/presets 200 ve 3 preset (dusuk/yuksek/sinir) döner."""
+        """GET /patients/presets 200 ve genisletilmis preset listesi doner."""
         resp = client.get("/patients/presets")
         assert resp.status_code == 200
         body = resp.json()
         assert isinstance(body, list)
-        assert len(body) == 3
+        assert len(body) >= 10
         preset_ids = [p["preset_id"] for p in body]
-        assert "dusuk_risk" in preset_ids
-        assert "yuksek_risk" in preset_ids
-        assert "sinir_durum" in preset_ids
+        for expected in (
+            "dusuk_risk",
+            "yuksek_risk",
+            "sinir_durum",
+            "septik_sok",
+            "renal_yetmezlik",
+            "respiratuvar_distres",
+        ):
+            assert expected in preset_ids
 
     def test_patient_presets_snapshot_fields(self, client: TestClient) -> None:
         """Her preset'in features alani 16+ klinik feature içerir."""

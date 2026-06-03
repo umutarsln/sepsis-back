@@ -10,11 +10,7 @@ from app.schemas import HorizonComparisonRow, SnapshotModelMetrics
 
 _BACKEND_DIR = Path(__file__).resolve().parents[2]
 _SEPSIS_SON_DIR = Path(__file__).resolve().parents[3]
-
-_ADM4_METRICS = _SEPSIS_SON_DIR / "adim_4_2026-05-07" / "ciktilar" / "metrics_5_models.json"
-_ADM46_OPTUNA = _SEPSIS_SON_DIR / "adim_4_6_2026-05-20" / "ciktilar" / "metrics_optuna_h6.json"
-_ADM47_H0 = _SEPSIS_SON_DIR / "adim_4_7_2026-05-23" / "ciktilar" / "metrics_h0.json"
-_ADM47_H24 = _SEPSIS_SON_DIR / "adim_4_7_2026-05-23" / "ciktilar" / "metrics_h24.json"
+_BUNDLED_METRICS_DIR = _BACKEND_DIR / "artifacts" / "metrics"
 
 _MODEL_ORDER = [
     "logistic_regression",
@@ -31,10 +27,52 @@ _HORIZON_LABELS: dict[int, str] = {
 }
 
 _HORIZON_SOURCES: dict[int, str] = {
-    0: "adim_4_7/metrics_h0.json",
-    6: "adim_4 + adim_4_6 Optuna (XGB, RF)",
-    24: "adim_4_7/metrics_h24.json",
+    0: "artifacts/metrics/metrics_h0.json",
+    6: "artifacts/metrics (Faz 4 + Optuna h6)",
+    24: "artifacts/metrics/metrics_h24.json",
 }
+
+
+def _resolve_metrics_path(filename: str, monorepo_relative: Path) -> Path | None:
+    """Once backend artifacts/metrics, yoksa sepsis-son adim klasorunu dener."""
+    bundled = _BUNDLED_METRICS_DIR / filename
+    if bundled.exists():
+        return bundled
+    if monorepo_relative.exists():
+        return monorepo_relative
+    return None
+
+
+def _adm4_metrics_path() -> Path | None:
+    """Faz 4 h=6 baseline metrik dosya yolunu cozer."""
+    return _resolve_metrics_path(
+        "metrics_5_models.json",
+        _SEPSIS_SON_DIR / "adim_4_2026-05-07" / "ciktilar" / "metrics_5_models.json",
+    )
+
+
+def _adm46_optuna_path() -> Path | None:
+    """Faz 4.6 Optuna h=6 metrik dosya yolunu cozer."""
+    return _resolve_metrics_path(
+        "metrics_optuna_h6.json",
+        _SEPSIS_SON_DIR / "adim_4_6_2026-05-20" / "ciktilar" / "metrics_optuna_h6.json",
+    )
+
+
+def _adm47_h0_path() -> Path | None:
+    """Faz 4.7 h=0 metrik dosya yolunu cozer."""
+    return _resolve_metrics_path(
+        "metrics_h0.json",
+        _SEPSIS_SON_DIR / "adim_4_7_2026-05-23" / "ciktilar" / "metrics_h0.json",
+    )
+
+
+def _adm47_h24_path() -> Path | None:
+    """Faz 4.7 h=24 metrik dosya yolunu cozer."""
+    return _resolve_metrics_path(
+        "metrics_h24.json",
+        _SEPSIS_SON_DIR / "adim_4_7_2026-05-23" / "ciktilar" / "metrics_h24.json",
+    )
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -44,11 +82,13 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def merge_h6_metrics() -> dict[str, dict[str, float]]:
     """Faz 4 baseline uzerine Faz 4.6 Optuna XGB/RF metriklerini birlestirir."""
-    if not _ADM4_METRICS.exists():
+    adm4 = _adm4_metrics_path()
+    if not adm4:
         return {}
-    merged: dict[str, dict[str, float]] = dict(_load_json(_ADM4_METRICS))
-    if _ADM46_OPTUNA.exists():
-        optuna = _load_json(_ADM46_OPTUNA).get("optuna_test") or {}
+    merged: dict[str, dict[str, float]] = dict(_load_json(adm4))
+    adm46 = _adm46_optuna_path()
+    if adm46:
+        optuna = _load_json(adm46).get("optuna_test") or {}
         for model_id, values in optuna.items():
             if isinstance(values, dict):
                 merged[model_id] = values
@@ -60,12 +100,14 @@ def load_horizon_metrics_raw(horizon: int) -> dict[str, dict[str, float]]:
     if horizon == 6:
         return merge_h6_metrics()
     if horizon == 0:
-        if _ADM47_H0.exists():
-            return _load_json(_ADM47_H0).get("metrics") or {}
+        path = _adm47_h0_path()
+        if path:
+            return _load_json(path).get("metrics") or {}
         return {}
     if horizon == 24:
-        if _ADM47_H24.exists():
-            return _load_json(_ADM47_H24).get("metrics") or {}
+        path = _adm47_h24_path()
+        if path:
+            return _load_json(path).get("metrics") or {}
         return {}
     raise ValueError(f"Desteklenmeyen horizon: {horizon}")
 

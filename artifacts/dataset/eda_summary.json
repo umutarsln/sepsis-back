@@ -1,0 +1,424 @@
+{
+  "kohort": {
+    "toplam_hasta": 40336,
+    "set_A": 20336,
+    "set_B": 20000,
+    "toplam_satir": 1552210
+  },
+  "etiket": {
+    "toplam_hasta": 40336,
+    "sepsis_pozitif_hasta": 2932,
+    "sepsis_negatif_hasta": 37404,
+    "sepsis_hasta_orani_pct": 7.27,
+    "sepsis_kayit_sayisi": 27916,
+    "sepsis_kayit_orani_pct": 1.8,
+    "onset_median_saat": 29.0,
+    "onset_n": 2932
+  },
+  "uzunluk": {
+    "median": 38.0,
+    "mean": 38.48200119000396,
+    "std": 22.795923321200572,
+    "min": 8.0,
+    "max": 336.0,
+    "p5": 14.0,
+    "p25": 24.0,
+    "p75": 47.0,
+    "p95": 58.0,
+    "iqr": 23.0
+  },
+  "missing": {
+    "vitals": [
+      {
+        "feature": "EtCO2",
+        "missing_pct": 96.29,
+        "missing_pct_pos": 89.26,
+        "missing_pct_neg": 96.42
+      },
+      {
+        "feature": "Temp",
+        "missing_pct": 66.16,
+        "missing_pct_pos": 66.06,
+        "missing_pct_neg": 66.16
+      },
+      {
+        "feature": "DBP",
+        "missing_pct": 31.35,
+        "missing_pct_pos": 29.89,
+        "missing_pct_neg": 31.37
+      },
+      {
+        "feature": "Resp",
+        "missing_pct": 15.35,
+        "missing_pct_pos": 14.34,
+        "missing_pct_neg": 15.37
+      },
+      {
+        "feature": "SBP",
+        "missing_pct": 14.58,
+        "missing_pct_pos": 15.2,
+        "missing_pct_neg": 14.57
+      },
+      {
+        "feature": "O2Sat",
+        "missing_pct": 13.06,
+        "missing_pct_pos": 10.36,
+        "missing_pct_neg": 13.11
+      },
+      {
+        "feature": "MAP",
+        "missing_pct": 12.45,
+        "missing_pct_pos": 9.5,
+        "missing_pct_neg": 12.51
+      },
+      {
+        "feature": "HR",
+        "missing_pct": 9.88,
+        "missing_pct_pos": 7.94,
+        "missing_pct_neg": 9.92
+      }
+    ],
+    "labs": [
+      {
+        "feature": "Bilirubin_direct",
+        "missing_pct": 99.81,
+        "missing_pct_pos": 99.53,
+        "missing_pct_neg": 99.81
+      },
+      {
+        "feature": "Fibrinogen",
+        "missing_pct": 99.34,
+        "missing_pct_pos": 98.82,
+        "missing_pct_neg": 99.35
+      },
+      {
+        "feature": "TroponinI",
+        "missing_pct": 99.05,
+        "missing_pct_pos": 98.85,
+        "missing_pct_neg": 99.05
+      },
+      {
+        "feature": "Bilirubin_total",
+        "missing_pct": 98.51,
+        "missing_pct_pos": 97.12,
+        "missing_pct_neg": 98.53
+      },
+      {
+        "feature": "Alkalinephos",
+        "missing_pct": 98.39,
+        "missing_pct_pos": 96.78,
+        "missing_pct_neg": 98.42
+      },
+      {
+        "feature": "AST",
+        "missing_pct": 98.38,
+        "missing_pct_pos": 96.76,
+        "missing_pct_neg": 98.41
+      },
+      {
+        "feature": "Lactate",
+        "missing_pct": 97.33,
+        "missing_pct_pos": 92.98,
+        "missing_pct_neg": 97.41
+      },
+      {
+        "feature": "PTT",
+        "missing_pct": 97.06,
+        "missing_pct_pos": 95.62,
+        "missing_pct_neg": 97.08
+      },
+      {
+        "feature": "SaO2",
+        "missing_pct": 96.55,
+        "missing_pct_pos": 93.51,
+        "missing_pct_neg": 96.6
+      },
+      {
+        "feature": "Phosphate",
+        "missing_pct": 95.99,
+        "missing_pct_pos": 94.11,
+        "missing_pct_neg": 96.02
+      },
+      {
+        "feature": "HCO3",
+        "missing_pct": 95.81,
+        "missing_pct_pos": 93.82,
+        "missing_pct_neg": 95.85
+      },
+      {
+        "feature": "Chloride",
+        "missing_pct": 95.46,
+        "missing_pct_pos": 93.15,
+        "missing_pct_neg": 95.5
+      },
+      {
+        "feature": "BaseExcess",
+        "missing_pct": 94.58,
+        "missing_pct_pos": 89.77,
+        "missing_pct_neg": 94.67
+      },
+      {
+        "feature": "PaCO2",
+        "missing_pct": 94.44,
+        "missing_pct_pos": 88.7,
+        "missing_pct_neg": 94.55
+      },
+      {
+        "feature": "Calcium",
+        "missing_pct": 94.12,
+        "missing_pct_pos": 91.39,
+        "missing_pct_neg": 94.17
+      },
+      {
+        "feature": "Platelets",
+        "missing_pct": 94.06,
+        "missing_pct_pos": 92.48,
+        "missing_pct_neg": 94.09
+      },
+      {
+        "feature": "Creatinine",
+        "missing_pct": 93.9,
+        "missing_pct_pos": 92.26,
+        "missing_pct_neg": 93.93
+      },
+      {
+        "feature": "Magnesium",
+        "missing_pct": 93.69,
+        "missing_pct_pos": 91.42,
+        "missing_pct_neg": 93.73
+      },
+      {
+        "feature": "WBC",
+        "missing_pct": 93.59,
+        "missing_pct_pos": 91.67,
+        "missing_pct_neg": 93.63
+      },
+      {
+        "feature": "BUN",
+        "missing_pct": 93.13,
+        "missing_pct_pos": 90.94,
+        "missing_pct_neg": 93.17
+      },
+      {
+        "feature": "pH",
+        "missing_pct": 93.07,
+        "missing_pct_pos": 86.64,
+        "missing_pct_neg": 93.19
+      },
+      {
+        "feature": "Hgb",
+        "missing_pct": 92.62,
+        "missing_pct_pos": 90.38,
+        "missing_pct_neg": 92.66
+      },
+      {
+        "feature": "FiO2",
+        "missing_pct": 91.67,
+        "missing_pct_pos": 82.02,
+        "missing_pct_neg": 91.84
+      },
+      {
+        "feature": "Hct",
+        "missing_pct": 91.15,
+        "missing_pct_pos": 88.78,
+        "missing_pct_neg": 91.19
+      },
+      {
+        "feature": "Potassium",
+        "missing_pct": 90.69,
+        "missing_pct_pos": 86.81,
+        "missing_pct_neg": 90.76
+      },
+      {
+        "feature": "Glucose",
+        "missing_pct": 82.89,
+        "missing_pct_pos": 81.76,
+        "missing_pct_neg": 82.92
+      }
+    ],
+    "demographics": [
+      {
+        "feature": "Gender",
+        "missing_pct": 0.0,
+        "missing_pct_pos": 0.0,
+        "missing_pct_neg": 0.0
+      },
+      {
+        "feature": "Age",
+        "missing_pct": 0.0,
+        "missing_pct_pos": 0.0,
+        "missing_pct_neg": 0.0
+      }
+    ],
+    "clinical": [
+      {
+        "feature": "Unit1",
+        "missing_pct": 39.43,
+        "missing_pct_pos": 45.07,
+        "missing_pct_neg": 39.32
+      },
+      {
+        "feature": "Unit2",
+        "missing_pct": 39.43,
+        "missing_pct_pos": 45.07,
+        "missing_pct_neg": 39.32
+      },
+      {
+        "feature": "HospAdmTime",
+        "missing_pct": 0.0,
+        "missing_pct_pos": 0.0,
+        "missing_pct_neg": 0.0
+      },
+      {
+        "feature": "ICULOS",
+        "missing_pct": 0.0,
+        "missing_pct_pos": 0.0,
+        "missing_pct_neg": 0.0
+      },
+      {
+        "feature": "Hour",
+        "missing_pct": 0.0,
+        "missing_pct_pos": 0.0,
+        "missing_pct_neg": 0.0
+      }
+    ]
+  },
+  "outlier_clip_onerileri": {
+    "HR": [
+      36.75,
+      130.75
+    ],
+    "O2Sat": [
+      90.75,
+      104.75
+    ],
+    "Temp": [
+      35.0,
+      39.0
+    ],
+    "SBP": [
+      60.5,
+      184.5
+    ],
+    "MAP": [
+      39.5,
+      123.5
+    ],
+    "DBP": [
+      27.0,
+      99.0
+    ],
+    "Resp": [
+      5.25,
+      31.25
+    ],
+    "EtCO2": [
+      13.0,
+      53.0
+    ],
+    "BaseExcess": [
+      -9.0,
+      7.0
+    ],
+    "HCO3": [
+      14.8,
+      34.0
+    ],
+    "FiO2": [
+      0.1,
+      0.9
+    ],
+    "pH": [
+      7.205,
+      7.565
+    ],
+    "PaCO2": [
+      20.0,
+      60.0
+    ],
+    "SaO2": [
+      88.0,
+      104.0
+    ],
+    "AST": [
+      -111.5,
+      244.5
+    ],
+    "BUN": [
+      -12.0,
+      52.0
+    ],
+    "Alkalinephos": [
+      -27.0,
+      189.0
+    ],
+    "Calcium": [
+      6.2,
+      10.2
+    ],
+    "Chloride": [
+      91.5,
+      119.5
+    ],
+    "Creatinine": [
+      -0.395,
+      2.525
+    ],
+    "Bilirubin_direct": [
+      -2.05,
+      3.95
+    ],
+    "Glucose": [
+      35.5,
+      223.5
+    ],
+    "Lactate": [
+      -1.35,
+      5.61
+    ],
+    "Magnesium": [
+      1.2,
+      2.8
+    ],
+    "Phosphate": [
+      0.35,
+      6.35
+    ],
+    "Potassium": [
+      2.65,
+      5.45
+    ],
+    "Bilirubin_total": [
+      -1.3,
+      3.5
+    ],
+    "TroponinI": [
+      -5.87,
+      9.89
+    ],
+    "Hct": [
+      16.35,
+      44.75
+    ],
+    "Hgb": [
+      5.2,
+      15.6
+    ],
+    "PTT": [
+      5.3,
+      65.3
+    ],
+    "WBC": [
+      -1.7,
+      23.1
+    ],
+    "Fibrinogen": [
+      -63.5,
+      596.5
+    ],
+    "Platelets": [
+      -51.0,
+      421.0
+    ]
+  }
+}

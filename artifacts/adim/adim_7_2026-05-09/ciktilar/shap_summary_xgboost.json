@@ -1,0 +1,92 @@
+[
+  {
+    "feature": "ICULOS",
+    "mean_abs_shap": 0.5571126341819763,
+    "rank": 1
+  },
+  {
+    "feature": "HospAdmTime",
+    "mean_abs_shap": 0.30700981616973877,
+    "rank": 2
+  },
+  {
+    "feature": "Temp",
+    "mean_abs_shap": 0.24968919157981873,
+    "rank": 3
+  },
+  {
+    "feature": "Creatinine",
+    "mean_abs_shap": 0.2136228233575821,
+    "rank": 4
+  },
+  {
+    "feature": "WBC",
+    "mean_abs_shap": 0.1635378748178482,
+    "rank": 5
+  },
+  {
+    "feature": "HR",
+    "mean_abs_shap": 0.16067370772361755,
+    "rank": 6
+  },
+  {
+    "feature": "Platelets",
+    "mean_abs_shap": 0.12051331996917725,
+    "rank": 7
+  },
+  {
+    "feature": "Chloride",
+    "mean_abs_shap": 0.11953878402709961,
+    "rank": 8
+  },
+  {
+    "feature": "MAP",
+    "mean_abs_shap": 0.11286414414644241,
+    "rank": 9
+  },
+  {
+    "feature": "Resp",
+    "mean_abs_shap": 0.10808039456605911,
+    "rank": 10
+  },
+  {
+    "feature": "Hgb",
+    "mean_abs_shap": 0.09356410056352615,
+    "rank": 11
+  },
+  {
+    "feature": "O2Sat",
+    "mean_abs_shap": 0.07647718489170074,
+    "rank": 12
+  },
+  {
+    "feature": "BUN",
+    "mean_abs_shap": 0.06891638040542603,
+    "rank": 13
+  },
+  {
+    "feature": "Glucose",
+    "mean_abs_shap": 0.05444275960326195,
+    "rank": 14
+  },
+  {
+    "feature": "Age",
+    "mean_abs_shap": 0.05333254113793373,
+    "rank": 15
+  },
+  {
+    "feature": "Gender_0",
+    "mean_abs_shap": 0.04045819118618965,
+    "rank": 16
+  },
+  {
+    "feature": "Hct",
+    "mean_abs_shap": 0.033255040645599365,
+    "rank": 17
+  },
+  {
+    "feature": "Gender_1",
+    "mean_abs_shap": 0.0,
+    "rank": 18
+  }
+]

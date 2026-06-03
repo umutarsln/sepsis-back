@@ -1,0 +1,67 @@
+{
+  "horizon_hours": 6,
+  "baseline_source": "../../adim_4_2026-05-07/ciktilar/metrics_5_models.json",
+  "baseline_test": {
+    "xgboost": {
+      "auroc": 0.8219797188506923,
+      "auprc": 0.17687639148175666,
+      "sens_at_spec85": 0.619961916851793,
+      "f1": 0.1760346031674514,
+      "brier": 0.14618720649779637,
+      "threshold": 0.5312392115592957
+    },
+    "random_forest": {
+      "auroc": 0.7979705232813216,
+      "auprc": 0.14492831060124126,
+      "sens_at_spec85": 0.5921929546175817,
+      "f1": 0.17141282381039868,
+      "brier": 0.024519167893343106,
+      "threshold": 0.043333333333333335
+    }
+  },
+  "optuna_test": {
+    "xgboost": {
+      "auroc": 0.8264209504727243,
+      "auprc": 0.17969626136800557,
+      "sens_at_spec85": 0.6217073944779435,
+      "f1": 0.17806662727809844,
+      "brier": 0.13936662673950195,
+      "threshold": 0.5110628008842468
+    },
+    "random_forest": {
+      "auroc": 0.8143003399112861,
+      "auprc": 0.15139961020967002,
+      "sens_at_spec85": 0.6198032370675975,
+      "f1": 0.17861715749039692,
+      "brier": 0.1327349598483302,
+      "threshold": 0.46276382697619034
+    }
+  },
+  "val_auroc_during_search": {
+    "xgboost": 0.8141300249000091,
+    "random_forest": 0.8028708481849907
+  },
+  "optuna_params": {
+    "xgboost": {
+      "n_estimators": 307,
+      "max_depth": 6,
+      "learning_rate": 0.019278786714875776,
+      "subsample": 0.74496732296448,
+      "colsample_bytree": 0.6888592771861506,
+      "gamma": 3.641419313599452,
+      "reg_alpha": 0.2595460482855192,
+      "reg_lambda": 1.6731946371975397
+    },
+    "random_forest": {
+      "n_estimators": 248,
+      "max_depth": 10,
+      "min_samples_split": 3,
+      "min_samples_leaf": 7,
+      "max_features": "log2"
+    }
+  },
+  "delta_auroc": {
+    "xgboost": 0.004441231622032027,
+    "random_forest": 0.016329816629964578
+  }
+}

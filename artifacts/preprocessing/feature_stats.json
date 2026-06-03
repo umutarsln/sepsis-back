@@ -1,0 +1,102 @@
+{
+  "feature_order": [
+    "HR",
+    "O2Sat",
+    "Temp",
+    "MAP",
+    "Resp",
+    "BUN",
+    "Chloride",
+    "Creatinine",
+    "Glucose",
+    "Hct",
+    "Hgb",
+    "WBC",
+    "Platelets",
+    "Age",
+    "HospAdmTime",
+    "ICULOS",
+    "Gender_0",
+    "Gender_1"
+  ],
+  "log_transform_cols": [
+    "MAP",
+    "BUN",
+    "Creatinine",
+    "Glucose",
+    "WBC",
+    "Platelets"
+  ],
+  "scale_cols": [
+    "HR",
+    "O2Sat",
+    "Temp",
+    "MAP",
+    "Resp",
+    "BUN",
+    "Chloride",
+    "Creatinine",
+    "Glucose",
+    "Hct",
+    "Hgb",
+    "WBC",
+    "Platelets"
+  ],
+  "scaler_stats": {
+    "HR": {
+      "mean": 84.46530437751764,
+      "std": 17.45722432524334
+    },
+    "O2Sat": {
+      "mean": 97.11988805884063,
+      "std": 3.5085168127213002
+    },
+    "Temp": {
+      "mean": 36.691422280258955,
+      "std": 2.5898043181478783
+    },
+    "MAP": {
+      "mean": 4.401340954554665,
+      "std": 0.265326505006022
+    },
+    "Resp": {
+      "mean": 18.626921562746574,
+      "std": 5.18594590750412
+    },
+    "BUN": {
+      "mean": 2.8555972033702517,
+      "std": 0.8195172165534678
+    },
+    "Chloride": {
+      "mean": 58.34530479279811,
+      "std": 52.65713915719439
+    },
+    "Creatinine": {
+      "mean": 0.7488289930059471,
+      "std": 0.4281362258775225
+    },
+    "Glucose": {
+      "mean": 4.709952800259733,
+      "std": 0.8404575553332653
+    },
+    "Hct": {
+      "mean": 30.66898678023819,
+      "std": 8.254090190597706
+    },
+    "Hgb": {
+      "mean": 10.236403514195668,
+      "std": 2.8543162888049918
+    },
+    "WBC": {
+      "mean": 2.302656139857889,
+      "std": 0.6411230809810003
+    },
+    "Platelets": {
+      "mean": 5.000826944733188,
+      "std": 1.1508715881811384
+    }
+  },
+  "source": "train split fit — PhysioNet 2019 setA+B",
+  "horizon": 0,
+  "n_train_patients": 28234
+}

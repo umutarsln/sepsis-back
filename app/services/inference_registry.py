@@ -19,6 +19,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from app.services.demo_saliency_store import demo_saliency_store
+
 log = logging.getLogger(__name__)
 
 # macOS'ta torch.backward() segfault (139) uretebiliyor; demo icin varsayilan kapali.
@@ -846,7 +848,13 @@ class InferenceRegistry:
             return None
 
     def _resolve_window_importance(
-        self, model: nn.Module, model_id: str, x: torch.Tensor, attn_w: torch.Tensor | None
+        self,
+        model: nn.Module,
+        model_id: str,
+        x: torch.Tensor,
+        attn_w: torch.Tensor | None,
+        patient_id: str | None = None,
+        window_hours: int = 24,
     ) -> tuple[list[float] | None, str | None]:
         """DL modeli icin timestep onem agirligi ve yontem etiketini cozer."""
         if attn_w is not None:
@@ -856,6 +864,11 @@ class InferenceRegistry:
             weights = self._compute_gradient_timestep_importance(model, x)
             if weights is not None:
                 return weights, "gradient"
+        precomputed = demo_saliency_store.get_weights(
+            patient_id, model_id, window_hours=window_hours
+        )
+        if precomputed is not None:
+            return precomputed, "gradient"
         return None, None
 
     @torch.no_grad()
@@ -864,6 +877,7 @@ class InferenceRegistry:
         snapshot: dict[str, float | None],
         repeat_hours: int = 24,
         series: list[dict[str, float | None]] | None = None,
+        patient_id: str | None = None,
     ) -> dict:
         """DL modelleri ile pencere tahmini yapar.
 
@@ -874,6 +888,7 @@ class InferenceRegistry:
             snapshot: Son saat veya tek snapshot (series yoksa tekrarlanir).
             repeat_hours: Pencere uzunlugu (series yokken).
             series: Opsiyonel saatlik snapshot listesi (T adim).
+            patient_id: Demo hasta kimligi; offline gradient saliency lookup icin.
 
         Returns:
             {'models': [...], 'window_shape': (T, 18), 'input_mode': str} sozlugu.
@@ -916,7 +931,12 @@ class InferenceRegistry:
                     attn_w = None
 
                 importance, importance_method = self._resolve_window_importance(
-                    model, model_id, x, attn_w
+                    model,
+                    model_id,
+                    x,
+                    attn_w,
+                    patient_id=patient_id,
+                    window_hours=T,
                 )
 
                 results.append(

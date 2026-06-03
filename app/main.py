@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 
 from app.schemas import (
     DatasetCohortSummary,
@@ -20,6 +20,8 @@ from app.schemas import (
     ExperimentMetrics,
     ExperimentRow,
     HealthResponse,
+    HorizonComparisonRow,
+    HorizonMetricsResponse,
     LeadTimeSummary,
     ModelScore,
     PatientPreset,
@@ -35,6 +37,12 @@ from app.schemas import (
 from app.services.inference_registry import InferenceRegistry
 from app.services.patient_presets import list_patient_presets
 from app.services.patient_store import patient_store
+from app.services.snapshot_metrics import (
+    build_horizon_comparison_rows,
+    get_horizon_label,
+    get_metrics_source_label,
+    get_snapshot_metrics,
+)
 
 # ---------------------------------------------------------------------------
 # Uygulama tanımı — OpenAPI metadata
@@ -99,6 +107,8 @@ _ADM3_DIR = _SEPSIS_SON_DIR / "adim_3_2026-05-07" / "ciktilar"
 _ADM4_DIR = _SEPSIS_SON_DIR / "adim_4_2026-05-07" / "ciktilar"
 _ADM5_DIR = _SEPSIS_SON_DIR / "adim_5_2026-05-08" / "ciktilar"
 _ADM6_DIR = _SEPSIS_SON_DIR / "adim_6_2026-05-09" / "ciktilar"
+_ADM46_DIR = _SEPSIS_SON_DIR / "adim_4_6_2026-05-20" / "ciktilar"
+_ADM47_DIR = _SEPSIS_SON_DIR / "adim_4_7_2026-05-23" / "ciktilar"
 _ADM7_DIR = _SEPSIS_SON_DIR / "adim_7_2026-05-09" / "ciktilar"
 
 # Faz 4 ML varsayilan hiperparametreleri (train_5_models.py ile uyumlu).
@@ -650,13 +660,24 @@ def predict_snapshot_horizon(
         500: {"description": "Model inference veya SHAP hesaplama hatası."},
     },
 )
-def predict_snapshot_explain(req: SnapshotPredictionRequest) -> SnapshotExplainResponse:
+def predict_snapshot_explain(
+    req: SnapshotPredictionRequest,
+    horizon: int = Query(6, description="Tahmin ufku: 0, 6 veya 24"),
+) -> SnapshotExplainResponse:
     """Snapshot skorlaması yapar ve tüm ML modelleri için SHAP değerlerini hesaplar.
 
     **shap_by_model** her model için mutlak SHAP değerine göre azalan top-10 listesi döner.
     **shap_top10** alanı geriye uyumluluk için XGBoost sonucunu içerir.
     """
-    raw = inference_registry.predict_snapshot_explain(req.snapshot.model_dump())
+    if horizon not in (0, 6, 24):
+        raise HTTPException(status_code=422, detail="horizon yalnizca 0, 6 veya 24 olabilir")
+    try:
+        raw = inference_registry.predict_snapshot_explain(
+            req.snapshot.model_dump(),
+            horizon=horizon,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     scores = [ModelScore(**m) for m in raw["models"]]
     top10 = None
     if raw.get("shap_top10") is not None:
@@ -702,6 +723,7 @@ def predict_window(req: WindowPredictionRequest) -> WindowPredictionResponse:
         snap,
         req.repeat_hours,
         series=series_raw,
+        patient_id=req.patient_id,
     )
     dl_results = [WindowModelResult(**m) for m in raw["models"]]
     return WindowPredictionResponse(
@@ -856,6 +878,44 @@ def get_experiments() -> list[ExperimentRow]:
 def get_dataset_summary() -> DatasetSummaryResponse:
     """Faz 2 EDA ve Faz 3 preprocessing split artifact'lerinden analiz ozeti doner."""
     return _build_dataset_summary()
+
+
+@app.get(
+    "/artifacts/snapshot-metrics",
+    response_model=HorizonMetricsResponse,
+    tags=["Metaveri"],
+    summary="Snapshot ML model test metrikleri (ufuk bazli)",
+    response_description="Faz 4.6 Optuna (h=6) ve Faz 4.7 (h=0/h=24) frozen test metrikleri.",
+)
+def get_snapshot_metrics_endpoint(
+    horizon: int = Query(6, description="Tahmin ufku: 0, 6 veya 24"),
+) -> HorizonMetricsResponse:
+    """Belirtilen ufuk icin 5 ML modelinin AUROC/AUPRC/F1 metriklerini doner."""
+    if horizon not in (0, 6, 24):
+        raise HTTPException(status_code=422, detail="horizon yalnizca 0, 6 veya 24 olabilir")
+    try:
+        models = get_snapshot_metrics(horizon)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not models:
+        raise HTTPException(status_code=404, detail=f"Metrik bulunamadi: horizon={horizon}")
+    return HorizonMetricsResponse(
+        horizon=horizon,
+        label=get_horizon_label(horizon),
+        metrics_source=get_metrics_source_label(horizon),
+        models=models,
+    )
+
+
+@app.get(
+    "/artifacts/horizon-comparison",
+    response_model=list[HorizonComparisonRow],
+    tags=["Metaveri"],
+    summary="ML modelleri icin h=0/6/24 AUROC-AUPRC karsilastirmasi",
+)
+def get_horizon_comparison() -> list[HorizonComparisonRow]:
+    """Faz 4.7 karsilastirma tablosu — 5 ML model x 3 ufuk."""
+    return build_horizon_comparison_rows()
 
 
 @app.get(

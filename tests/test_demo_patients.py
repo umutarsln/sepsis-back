@@ -34,3 +34,26 @@ class TestDemoPatients:
         """Bilinmeyen hasta 404 döner."""
         resp = client.get("/patients/p999999/window")
         assert resp.status_code == 404
+
+    def test_demo_precomputed_gradient_saliency(self, client: TestClient) -> None:
+        """Demo hasta + patient_id ile LSTM/GRU/Transformer saliency döner (offline artifact)."""
+        listing = client.get("/patients/demo").json()
+        pid = listing[0]["patient_id"]
+        win = client.get(f"/patients/{pid}/window?hours=24").json()
+        series = [{k: v for k, v in step.items() if k != "hour"} for step in win["series"]]
+        resp = client.post(
+            "/predict/window",
+            json={
+                "snapshot": series[-1],
+                "series": series,
+                "repeat_hours": 24,
+                "patient_id": pid,
+            },
+        )
+        assert resp.status_code == 200
+        by_id = {m["model_id"]: m for m in resp.json()["models"]}
+        assert by_id["bigru_attn"]["importance_method"] == "attention"
+        assert len(by_id["bigru_attn"]["attention_weights"]) == 24
+        for mid in ("lstm", "gru", "transformer"):
+            assert by_id[mid]["importance_method"] == "gradient", mid
+            assert len(by_id[mid]["attention_weights"]) == 24, mid

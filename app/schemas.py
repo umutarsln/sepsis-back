@@ -269,6 +269,10 @@ class WindowPredictionRequest(BaseModel):
         None,
         description="Gercek saatlik seri (T adim). Verilirse repeat atlanir.",
     )
+    patient_id: Optional[str] = Field(
+        None,
+        description="Demo hasta kimligi; offline gradient saliency lookup icin (Faz 4.8).",
+    )
 
 
 class WindowModelResult(BaseModel):
@@ -378,6 +382,41 @@ class PatientWindowResponse(BaseModel):
     series: list[HourlySnapshot]
 
 
+class SnapshotModelMetrics(BaseModel):
+    """Tek ML snapshot modelinin frozen test metrikleri."""
+
+    model_id: str
+    auroc: float = Field(..., ge=0.0, le=1.0)
+    auprc: float = Field(..., ge=0.0, le=1.0)
+    sens_at_spec85: float = Field(..., ge=0.0, le=1.0)
+    f1: float = Field(..., ge=0.0, le=1.0)
+    threshold: float = Field(..., ge=0.0, le=1.0)
+    brier: Optional[float] = Field(None, ge=0.0, le=1.0)
+    source: str = Field(..., description="Metrik kaynagi (ornegin adim_4_6 Optuna)")
+
+
+class HorizonMetricsResponse(BaseModel):
+    """Ufuk bazli snapshot ML metrik ozeti."""
+
+    horizon: int = Field(..., description="0, 6 veya 24")
+    label: str
+    metrics_source: str
+    models: list[SnapshotModelMetrics]
+
+
+class HorizonComparisonRow(BaseModel):
+    """5 ML model icin coklu ufuk AUROC/AUPRC karsilastirmasi."""
+
+    model_id: str
+    model_name: str
+    h0_auroc: float
+    h6_auroc: float
+    h24_auroc: float
+    h0_auprc: float
+    h6_auprc: float
+    h24_auprc: float
+
+
 class LeadTimeSummary(BaseModel):
     """Erken uyari (lead-time) ozet metrikleri — frontend dashboard ile uyumlu."""
 
@@ -441,6 +480,16 @@ class PatientPreset(BaseModel):
     description: str
     gender: str = Field(..., description="M veya F")
     features: dict[str, float]
+    source: str = Field(
+        "synthetic",
+        description="synthetic (egitim senaryosu) veya demo (Faz 4.8 gercek test hastasi)",
+    )
+    patient_id: Optional[str] = Field(None, description="Demo preset icin gercek Patient_ID")
+    sepsis: Optional[bool] = Field(None, description="Demo hastada gercek sepsis etiketi")
+    preset_group: str = Field(
+        "scenario",
+        description="scenario (sentetik) veya demo_real (Faz 4.8)",
+    )
 
 
 class ExperimentMetrics(BaseModel):

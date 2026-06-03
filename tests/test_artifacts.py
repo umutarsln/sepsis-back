@@ -105,6 +105,31 @@ class TestArtifactEndpoints:
         assert "detection_rate" in body
         assert body["median_lead_time_hours"] > 0
 
+    def test_snapshot_metrics_h6(self, client: TestClient) -> None:
+        """GET /artifacts/snapshot-metrics?horizon=6 Optuna metrikleri doner."""
+        resp = client.get("/artifacts/snapshot-metrics?horizon=6")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["horizon"] == 6
+        assert len(body["models"]) == 5
+        xgb = next(m for m in body["models"] if m["model_id"] == "xgboost")
+        assert xgb["auroc"] > 0.82
+
+    def test_snapshot_metrics_h0(self, client: TestClient) -> None:
+        """GET /artifacts/snapshot-metrics?horizon=0 Faz 4.7 metrikleri doner."""
+        resp = client.get("/artifacts/snapshot-metrics?horizon=0")
+        assert resp.status_code == 200
+        assert resp.json()["horizon"] == 0
+
+    def test_horizon_comparison(self, client: TestClient) -> None:
+        """GET /artifacts/horizon-comparison 5 model x 3 ufuk tablosu doner."""
+        resp = client.get("/artifacts/horizon-comparison")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert len(body) == 5
+        assert "h6_auroc" in body[0]
+        assert "h24_auprc" in body[0]
+
 
 class TestMetadataEndpoints:
     """Metaveri endpoint senaryoları."""
@@ -160,3 +185,14 @@ class TestMetadataEndpoints:
             assert "Gender_1" not in features
             assert preset["gender"] in {"M", "F"}
             assert preset["risk_band"] in {"low", "medium", "high"}
+            assert preset.get("source") in {"synthetic", "demo", None}
+            assert preset.get("preset_group") in {"scenario", "demo_real", None}
+
+    def test_demo_presets_when_parquet_exists(self, client: TestClient) -> None:
+        """Demo parquet varsa preset listesinde demo_real grubu bulunur."""
+        resp = client.get("/patients/presets")
+        body = resp.json()
+        demo = [p for p in body if p.get("preset_group") == "demo_real"]
+        if demo:
+            assert demo[0]["source"] == "demo"
+            assert demo[0]["patient_id"]

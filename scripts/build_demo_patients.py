@@ -4,6 +4,9 @@ Cikti:
   backend/artifacts/demo/demo_patients.parquet
   backend/artifacts/demo/demo_manifest.json
 
+Sonrasinda (macOS gradient saliency icin):
+  ENABLE_GRADIENT_SALIENCY=1 python build_demo_saliency.py
+
 Kullanim:
   python build_demo_patients.py
 """

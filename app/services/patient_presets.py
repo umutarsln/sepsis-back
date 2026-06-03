@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.schemas import PatientPreset
+from app.services.patient_store import patient_store
 
 # Tum preset satirlarinda kullanilan tam 18-feature snapshot sablonu.
 _DEFAULT_SNAPSHOT: dict[str, float] = {
@@ -284,12 +285,60 @@ def preset_from_row(row: dict[str, Any]) -> PatientPreset:
         description=row["description"],
         gender=_gender_from_snapshot(snapshot),
         features=_snapshot_to_features(snapshot),
+        source=row.get("source", "synthetic"),
+        patient_id=row.get("patient_id"),
+        sepsis=row.get("sepsis"),
+        preset_group=row.get("preset_group", "scenario"),
     )
 
 
-def list_patient_presets() -> list[PatientPreset]:
-    """Simulatör icin tum hazir hasta profillerini risk bandina gore sirali dondurur."""
-    order = {"low": 0, "medium": 1, "high": 2}
-    presets = [preset_from_row(row) for row in _PRESET_ROWS]
-    presets.sort(key=lambda item: (order.get(item.risk_band, 1), item.label))
+def _demo_preset_from_patient(meta: dict[str, Any]) -> PatientPreset | None:
+    """Faz 4.8 demo manifest satirindan PatientPreset uretir."""
+    patient_id = str(meta.get("patient_id", ""))
+    if not patient_id:
+        return None
+    try:
+        snapshot = patient_store.get_latest_snapshot(patient_id)
+    except (FileNotFoundError, KeyError):
+        return None
+    sepsis = bool(meta.get("sepsis", False))
+    short_id = patient_id.replace("p", "").lstrip("0") or patient_id[-4:]
+    label = f"Demo {'Sepsis+' if sepsis else 'Sepsis−'} #{short_id}"
+    return PatientPreset(
+        preset_id=f"demo_{patient_id}",
+        label=label,
+        risk_band="high" if sepsis else "low",
+        description=(
+            f"Faz 4.8 gercek test hastasi ({patient_id}); son saat snapshot degerleri."
+        ),
+        gender=_gender_from_snapshot(snapshot),
+        features=_snapshot_to_features(snapshot),
+        source="demo",
+        patient_id=patient_id,
+        sepsis=sepsis,
+        preset_group="demo_real",
+    )
+
+
+def list_demo_presets() -> list[PatientPreset]:
+    """Faz 4.8 demo hastalarindan preset listesi uretir."""
+    try:
+        demo_rows = patient_store.list_demo_patients()
+    except FileNotFoundError:
+        return []
+    presets: list[PatientPreset] = []
+    for row in demo_rows:
+        preset = _demo_preset_from_patient(row)
+        if preset is not None:
+            presets.append(preset)
+    presets.sort(key=lambda item: (not item.sepsis, item.patient_id or ""))
     return presets
+
+
+def list_patient_presets() -> list[PatientPreset]:
+    """Simulatör icin demo (Faz 4.8) + sentetik senaryo profillerini dondurur."""
+    order = {"low": 0, "medium": 1, "high": 2}
+    demo = list_demo_presets()
+    synthetic = [preset_from_row(row) for row in _PRESET_ROWS]
+    synthetic.sort(key=lambda item: (order.get(item.risk_band, 1), item.label))
+    return demo + synthetic

@@ -122,6 +122,15 @@ class TestSnapshotExplain:
                 assert "feature" in rows[0]
             assert body.get("shap_top10") == body["shap_by_model"].get("xgboost")
 
+    def test_explain_horizon_query(self, client: TestClient) -> None:
+        """Explain endpoint horizon query parametresi ile h=0 skorlari doner."""
+        resp = client.post(
+            "/predict/snapshot/explain?horizon=0",
+            json={"snapshot": SAMPLE_SNAPSHOT},
+        )
+        assert resp.status_code == 200
+        assert resp.json().get("horizon") == 0
+
 
 class TestWindowPredict:
     """POST /predict/window senaryoları."""

@@ -129,5 +129,14 @@ class PatientStore:
             "series": series,
         }
 
+    def get_latest_snapshot(self, patient_id: str) -> dict[str, float]:
+        """Hastanin son saatindeki klinik snapshot degerlerini API formatinda dondurur."""
+        window = self.get_window(patient_id, hours=1)
+        series = window.get("series") or []
+        if not series:
+            raise KeyError(f"Hasta icin snapshot yok: {patient_id}")
+        last = series[-1]
+        return {k: float(v) for k, v in last.items() if k != "hour"}
+
 
 patient_store = PatientStore()

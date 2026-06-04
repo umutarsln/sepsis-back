@@ -34,6 +34,16 @@ from app.schemas import (
     WindowPredictionRequest,
     WindowPredictionResponse,
 )
+from app.artifact_paths import (
+    resolve_adim_ciktilar,
+    resolve_adim_tier_file,
+    resolve_dataset_eda_path,
+    resolve_feature_stats_path,
+    resolve_metrics_file,
+    resolve_preprocessing_file,
+    resolve_shap_summary_xgboost,
+    resolve_version_comparison_csv,
+)
 from app.services.inference_registry import InferenceRegistry
 from app.services.patient_presets import list_patient_presets
 from app.services.patient_store import patient_store
@@ -211,11 +221,13 @@ def _metrics_from_raw(raw: dict[str, Any], val_auroc: float | None = None) -> Ex
 
 def _append_faz4_experiments(experiments: list[ExperimentRow]) -> None:
     """Faz 4 ML egitim kosularini metrics_5_models.json'dan listeye ekler."""
-    metrics = _load_json_optional(_ADM4_DIR / "metrics_5_models.json")
+    metrics = _load_json_optional(resolve_metrics_file("metrics_5_models.json"))
     if not isinstance(metrics, dict):
         return
 
-    xgb_meta = _load_json_optional(_ADM4_DIR / "xgb_best_params.json") or {}
+    xgb_meta = _load_json_optional(
+        resolve_adim_ciktilar("adim_4_2026-05-07", "xgb_best_params.json")
+    ) or {}
     xgb_val_auroc = float(xgb_meta["val_auroc"]) if xgb_meta.get("val_auroc") is not None else None
 
     for model_id, raw in metrics.items():
@@ -259,7 +271,9 @@ def _append_faz5_experiments(experiments: list[ExperimentRow]) -> None:
         "thorough": "LSTM erken durdurma (epoch 18); GRU en iyi AUROC (+0.005 vs standard)",
     }
     for tier, tier_cfg in _DL_TIERS.items():
-        metrics = _load_json_optional(_ADM5_DIR / tier / "metrics_dl.json")
+        metrics = _load_json_optional(
+            resolve_adim_tier_file("adim_5_2026-05-08", tier, "metrics_dl.json")
+        )
         if not isinstance(metrics, dict):
             continue
 
@@ -295,7 +309,9 @@ def _append_faz5_experiments(experiments: list[ExperimentRow]) -> None:
 
 def _append_faz6_experiments(experiments: list[ExperimentRow]) -> None:
     """Faz 6 Transformer kosusunu transformer_metrics.json'dan listeye ekler."""
-    metrics = _load_json_optional(_ADM6_DIR / "transformer_metrics.json")
+    metrics = _load_json_optional(
+        resolve_adim_ciktilar("adim_6_2026-05-09", "transformer_metrics.json")
+    )
     if not isinstance(metrics, dict):
         return
 
@@ -361,9 +377,9 @@ def _missing_lookup(eda: dict[str, Any]) -> dict[str, tuple[float, str]]:
 
 def _build_dataset_summary() -> DatasetSummaryResponse:
     """Faz 2 EDA + Faz 3 split artifact'lerinden veri analizi ozeti uretir."""
-    eda = _load_json(_ADM2_DIR / "eda_summary.json")
-    splits = _load_json(_ADM3_DIR / "splits.json")
-    feature_stats = _load_json(_ADM3_DIR / "feature_stats.json")
+    eda = _load_json(resolve_dataset_eda_path())
+    splits = _load_json(resolve_preprocessing_file("splits.json"))
+    feature_stats = _load_json(resolve_feature_stats_path())
 
     kohort = eda.get("kohort", {})
     etiket = eda.get("etiket", {})
@@ -502,7 +518,9 @@ def _load_lime_explanations(model_id: str) -> list:
             return data[model_id]
 
     if model_id == "xgboost":
-        lime_json = _LIME_JSON if _LIME_JSON.exists() else _ADM7_DIR / "lime_explanations.json"
+        lime_json = _LIME_JSON if _LIME_JSON.exists() else resolve_adim_ciktilar(
+            "adim_7_2026-05-09", "lime_explanations.json"
+        )
         return _load_json(lime_json)
 
     raise HTTPException(
@@ -530,7 +548,9 @@ def _lead_time_from_mapping(data: dict[str, Any]) -> LeadTimeSummary:
 
 def _lead_time_from_faz4_csv(model_id: str = "xgboost") -> LeadTimeSummary:
     """Faz 4 lead_time_summary.csv satirindan ozet metrik uretir."""
-    rows = _csv_to_records(_ADM4_DIR / "lead_time_summary.csv")
+    rows = _csv_to_records(
+        resolve_adim_ciktilar("adim_4_2026-05-07", "lead_time_summary.csv")
+    )
     row = next((r for r in rows if r.get("model") == model_id), None)
     if row is None:
         raise HTTPException(
@@ -804,7 +824,7 @@ def get_feature_ranking() -> list:
     `/artifacts/shap-summary/xgboost` ile aynı kaynağı kullanır;
     frontend feature ranking paneli için ayrı endpoint olarak sunulur.
     """
-    return _load_json(_ADM7_DIR / "shap_summary_xgboost.json")
+    return _load_json(resolve_shap_summary_xgboost())
 
 
 @app.get(
@@ -849,7 +869,7 @@ def get_version_comparison() -> list:
     Dönen sütunlar: `family`, `model_id`, `model_name`, `auroc`, `auprc`,
     `sens_spec85`, `f1`, `median_lead_h`, `mean_lead_h`.
     """
-    return _csv_to_records(_ADM6_DIR / "version_comparison_summary.csv")
+    return _csv_to_records(resolve_version_comparison_csv())
 
 
 @app.get(
@@ -1045,12 +1065,13 @@ def get_model_descriptors() -> list:
 def get_feature_stats() -> dict:
     """Faz 3'te hesaplanan öznitelik istatistiklerini döner.
 
-    Kaynak: `adim_3_2026-05-07/ciktilar/feature_stats.json`
+    Kaynak: `artifacts/preprocessing/feature_stats.json` (deploy) veya
+    `adim_3_2026-05-07/ciktilar/feature_stats.json` (monorepo).
 
     Dönen alanlar: **feature_order**, **log_transform_cols**, **scaler_stats**,
     **clinical_ranges** (simulatör slider sınırları).
     """
-    return _with_clinical_ranges(_load_json(_ADM3_DIR / "feature_stats.json"))
+    return _with_clinical_ranges(_load_json(resolve_feature_stats_path()))
 
 
 @app.get(

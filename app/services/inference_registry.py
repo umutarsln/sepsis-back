@@ -19,6 +19,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from app.artifact_paths import resolve_feature_stats_path
 from app.services.demo_saliency_store import demo_saliency_store
 
 log = logging.getLogger(__name__)
@@ -98,9 +99,7 @@ _SNAPSHOT_MODEL_PATHS: dict[str, Path] = {
 }
 
 _THRESHOLDS_PATH = _BASE / "snapshot_thresholds.json"
-_FEATURE_STATS_PATH = (
-    _SEPSIS_SON_DIR / "adim_3_2026-05-07" / "ciktilar" / "feature_stats.json"
-)
+_FEATURE_STATS_PATH = resolve_feature_stats_path()
 
 # ---------------------------------------------------------------------------
 # DL model sabitleri — Faz 5

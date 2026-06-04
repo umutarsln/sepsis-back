@@ -10,14 +10,14 @@ from typing import Any
 
 import pandas as pd
 
+from app.artifact_paths import resolve_feature_stats_path
 from app.services.inference_registry import FEATURE_ORDER, LOG_TRANSFORM_COLS
 
 log = logging.getLogger(__name__)
 
 _BACKEND_DIR = Path(__file__).resolve().parents[2]
 _DEMO_DIR = _BACKEND_DIR / "artifacts" / "demo"
-_SEPSIS_SON = Path(__file__).resolve().parents[3]
-_FEATURE_STATS_PATH = _SEPSIS_SON / "adim_3_2026-05-07" / "ciktilar" / "feature_stats.json"
+_FEATURE_STATS_PATH = resolve_feature_stats_path()
 
 SCALE_COLS = {
     "HR", "O2Sat", "Temp", "MAP", "Resp", "BUN", "Chloride",
